@@ -11,12 +11,12 @@ Copy `.env.example` to `.env` and set at least:
 
 Optional settings:
 
-- `OPENROUTER_BASE_URL`
-- `SEAHORSE_TIMEOUT_SECONDS`
-- `SEAHORSE_APP_NAME`
-- `SEAHORSE_HTTP_REFERER`
 - `SEAHORSE_LOG_DIR`
 - `SEAHORSE_LOG_LEVEL`
+
+The current implementation is wired to OpenRouter. The API base URL, request
+timeout, and attribution headers are internal defaults rather than user-facing
+configuration.
 
 The current skeleton implements Phase 1 from [docs/architecture_v2.md](/Users/david/codes/agent/seahorse/docs/architecture_v2.md):
 

@@ -1,60 +1,59 @@
-# Repository Guidelines
+# Agent Guidance For Seahorse
 
-## Project Structure
+This file is written for coding agents working in this repository. Follow these rules by default unless the user explicitly asks for something else. The guidance here may become stale as the codebase evolves, so if the repository and this file disagree, follow the code, call out the mismatch, and suggest updating this document.
 
-- `src/seahorse/domain/` — domain models and repository/service interfaces. No infrastructure dependencies allowed here.
-- `src/seahorse/application/` — application services (`IngestService`, `RecallService`, `UserModelMerger`). Coordinate domain and infrastructure through injected interfaces.
-- `src/seahorse/infrastructure/` — concrete implementations: Markdown repositories, LLM provider, extractor, config loading.
-- `src/seahorse/api/` — transport adapters (MCP tools, HTTP routes). Validate input, call application services, return results. No business logic here.
-- `src/seahorse/prompts/` — prompt templates as Markdown files.
-- `data/` — runtime storage for `core_rule.md` and `user_model.md`.
-- `tests/` — test suite covering domain, merger, services, and API adapters.
-- `docs/` — architecture documentation. `architecture_v2.md` is the current reference.
+## Purpose
 
-## Development Commands
+- Seahorse is a single-user memory service for agent systems.
+- Keep the MVP small. Do not add multi-user support, vector storage, embeddings, or LangChain unless explicitly asked.
 
-- `uv sync` — install dependencies into the local virtual environment.
-- `uv run seahorse` — run through the packaged entry point.
-- `uv run pytest` — run the test suite.
+## Structure
 
-## Architecture & Design Patterns
+- `src/seahorse/domain/`: domain models and interfaces only.
+- `src/seahorse/application/`: orchestration and merge logic.
+- `src/seahorse/infrastructure/`: config, repositories, provider, extractor.
+- `src/seahorse/api/`: MCP and HTTP adapters only.
+- `src/seahorse/prompts/`: prompt templates.
+- `tests/`: regression and wiring tests.
+- `docs/architecture_v2.md`: current architecture reference.
 
-- **Extractor owns prompt assembly**: `UserModelExtractor` is responsible for prompt construction, provider calls, and parsing output into `UserModelPatch`. It does not touch repositories or transport concerns.
-- **Merger owns merge policy**: `UserModelMerger` applies `UserModelPatch` to the current `UserModel`. Keeping this separate from the extractor means prompt changes do not force persistence changes.
-- **Application services are the only orchestration point**: `IngestService` and `RecallService` are the sole place where repositories, extractors, and pipeline hooks are coordinated.
-- **Episode pipeline is a no-op hook for MVP**: The `EpisodePipeline` interface exists, but the MVP implementation is `NoopEpisodePipeline`. Do not add vector storage, embeddings, or LangChain until this hook is wired to a real implementation.
-- **Config at the boundary**: Read environment variables in `infrastructure/config.py`. Avoid scattered `os.getenv()` calls in other modules.
-- **Actionable failures**: Raise concise `RuntimeError` for user-fixable issues such as missing config, invalid input, or upstream API errors.
-- **Standard-library first**: Prefer the Python standard library unless an added dependency clearly improves correctness or maintainability.
+## Rules
 
-## Testing Guidelines
+- Preserve the layer boundaries. Do not put business logic in `api/` or provider details in `domain/`.
+- Read env vars only in `src/seahorse/infrastructure/config.py`.
+- `UserModelExtractor` owns prompt assembly and provider calls.
+- `UserModelMerger` owns merge policy.
+- `IngestService` and `RecallService` are the orchestration boundary.
+- Keep failures concise and actionable.
+- Do not overwrite unrelated local changes.
 
-- Test layers in isolation: fake repositories and extractors for service tests; real file I/O for repository tests; thin wiring checks for API tests.
-- Do not let tests call real LLM providers or external services. Mock at the `LLMProvider` boundary.
-- Test `UserModelMerger` with pure unit tests — no I/O, no provider calls.
-- Add regression tests when changing merge logic, prompt parsing, or repository file layout.
+## Coding Style
 
-## Configuration & Security
+- Use `snake_case` for variables, functions, and modules; use `PascalCase` for classes.
+- If the same string, number, metadata field, or structural assumption appears in more than one place, extract it to a shared constant, `Enum`, helper, or schema definition before writing the second use.
+- Keep prompt text, hint text, and other reusable long strings in one clear location rather than scattering them across multiple files.
+- Config schema values must be accepted exactly; undocumented aliases are forbidden.
+- Keep functions focused. Do not mix unrelated responsibilities in one function when that would make the code harder to extend, test, or reuse.
+- Comments should explain intent or constraints, not restate obvious code behavior.
 
-- Document required environment variables in `.env.example` whenever adding a new setting.
-- Validate required configuration early in startup and fail fast with a clear error message.
+## Config
 
-## Change Guidance For LLM Agents
+- Required env vars: `OPENROUTER_API_KEY`, `SEAHORSE_MODEL`.
+- Keep configuration minimal. Prefer code defaults over adding new env vars unless there is a real operational need.
+- If config changes, update `.env.example` and `README.md`.
 
-- Preserve the layered architecture. Do not let infrastructure details leak into domain or application code.
-- When adding a new feature, identify which layer it belongs to before writing code. Transport changes go in `api/`. Storage changes go in `infrastructure/repositories/`. Business logic changes go in `application/` or `domain/`.
-- Keep the MVP scope. Do not add episode persistence, vector storage, or multi-user support without explicit instruction.
-- Do not overwrite unrelated local modifications in this repository. The worktree may already contain user changes.
-- When changing the data model or storage format, check whether existing `data/*.md` files need a migration path.
+## Testing
 
-## Commit Message Guidelines
+- Mock provider calls in tests. Never hit real external services.
+- Add regression tests when changing merge logic, prompt parsing, config loading, or storage format.
+- Useful commands: `uv sync`, `uv run pytest`, `uv run seahorse`.
 
-- Format: `<type>: <summary>` or `<type>(<scope>): <summary>`.
-- Common types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`.
-- Keep messages short, specific, and lowercase.
+## Final Phase
 
-## Final Response Requirement For LLM Agents
-
-- After any change to code, tests, docs, or configuration files, include one suggested commit message in the final response.
-- Follow the commit message format above.
-- Put it on its own line prefixed with `Suggested commit message:`.
+- End each task with verification.
+- Choose verification based on risk and prefer the lightest check that proves the change works.
+- Do not add unit tests for every function.
+- Write unit tests for core pure logic and code with meaningful branching or edge cases.
+- Prefer integration or wiring tests when the main risk is config loading, service composition, repositories, or API/MCP adapter behavior.
+- If no automated test fits, do a small manual verification step and report it clearly.
+- Include a suggested commit message in the final response.

@@ -6,6 +6,10 @@ from pathlib import Path
 
 from seahorse.domain.models import ProviderSettings
 
+_DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
+_DEFAULT_PROVIDER_TIMEOUT_SECONDS = 60.0
+_DEFAULT_APP_NAME = "Seahorse"
+
 
 @dataclass(frozen=True)
 class StoragePaths:
@@ -63,8 +67,8 @@ def load_provider_settings_from_env() -> ProviderSettings:
         provider="openrouter",
         model=model,
         api_key=api_key,
-        base_url=os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1"),
-        timeout_seconds=float(os.environ.get("SEAHORSE_TIMEOUT_SECONDS", "60")),
-        app_name=os.environ.get("SEAHORSE_APP_NAME", "Seahorse"),
-        referer=os.environ.get("SEAHORSE_HTTP_REFERER"),
+        base_url=_DEFAULT_OPENROUTER_BASE_URL,
+        timeout_seconds=_DEFAULT_PROVIDER_TIMEOUT_SECONDS,
+        app_name=_DEFAULT_APP_NAME,
+        referer=None,
     )

@@ -13,13 +13,15 @@ from seahorse.infrastructure.config import (
 def test_load_provider_settings_from_env(monkeypatch) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setenv("SEAHORSE_MODEL", "openai/gpt-4.1-mini")
-    monkeypatch.setenv("SEAHORSE_TIMEOUT_SECONDS", "45")
 
     settings = load_provider_settings_from_env()
 
     assert settings.api_key == "test-key"
     assert settings.model == "openai/gpt-4.1-mini"
-    assert settings.timeout_seconds == 45.0
+    assert settings.timeout_seconds == 60.0
+    assert settings.base_url == "https://openrouter.ai/api/v1"
+    assert settings.app_name == "Seahorse"
+    assert settings.referer is None
 
 
 def test_app_paths_resolve_expected_locations(tmp_path: Path) -> None:
