@@ -57,7 +57,6 @@ def test_create_mcp_server_registers_expected_tools() -> None:
         episode_pipeline=FakeEpisodePipeline(),
     )
     container = AppContainer(
-        paths=None,  # type: ignore[arg-type]
         recall_service=recall_service,
         ingest_service=ingest_service,
     )
@@ -66,9 +65,12 @@ def test_create_mcp_server_registers_expected_tools() -> None:
 
     manager = server._tool_manager  # noqa: SLF001
     assert manager is not None
-    tool_names = {tool.name for tool in manager.list_tools()}
+    tools = {tool.name: tool for tool in manager.list_tools()}
+    tool_names = set(tools)
     assert "recall_context" in tool_names
     assert "ingest_turn" in tool_names
+    assert "start of every session" in tools["recall_context"].description
+    assert "end of a session" in tools["ingest_turn"].description
 
 
 def test_build_default_mcp_server_requires_provider_env(

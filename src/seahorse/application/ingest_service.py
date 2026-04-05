@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from seahorse import logger
 from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.domain.models import ConversationInput, IngestResult
 from seahorse.domain.repositories import CoreRuleRepository, UserModelRepository
@@ -22,20 +23,39 @@ class IngestService:
         self._episode_pipeline = episode_pipeline
 
     def ingest(self, conversation: ConversationInput) -> IngestResult:
+        logger.info(
+            "ingest.started",
+            {
+                "source": conversation.source,
+                "session_id": conversation.session_id,
+            },
+        )
         core_rule = self._core_rule_repository.load()
         current_user_model = self._user_model_repository.load()
 
         patch = self._extractor.extract(conversation, current_user_model, core_rule)
-        merged_user_model = self._merger.merge(current_user_model, patch)
+        merged = self._merger.merge(current_user_model, patch)
+        merged_user_model = merged.user_model
+
+        logger.info(
+            "ingest.patch.applied",
+            {
+                "user_model_updated": merged.changed,
+                "version": merged_user_model.version,
+            },
+        )
 
         self._user_model_repository.save(merged_user_model)
         self._episode_pipeline.process(conversation)
 
-        was_updated = (
-            current_user_model is None
-            or current_user_model.content != merged_user_model.content
+        logger.info(
+            "ingest.completed",
+            {
+                "user_model_updated": merged.changed,
+                "version": merged_user_model.version,
+            },
         )
         return IngestResult(
             user_model=merged_user_model,
-            user_model_updated=was_updated,
+            user_model_updated=merged.changed,
         )

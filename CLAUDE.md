@@ -19,9 +19,6 @@
 
 ## Architecture & Design Patterns
 
-- **Strict dependency direction**: `api` → `application` → `domain`. Infrastructure implements domain interfaces and is wired at startup via constructor injection. Domain imports nothing from infrastructure.
-- **Single-user only**: There is no multi-user routing, tenancy, or `user_id`. Do not introduce them.
-- **Narrow repository interfaces**: `CoreRuleRepository` and `UserModelRepository` are separate Protocol-based interfaces. Do not introduce a generic `StorageBackend` abstraction.
 - **Extractor owns prompt assembly**: `UserModelExtractor` is responsible for prompt construction, provider calls, and parsing output into `UserModelPatch`. It does not touch repositories or transport concerns.
 - **Merger owns merge policy**: `UserModelMerger` applies `UserModelPatch` to the current `UserModel`. Keeping this separate from the extractor means prompt changes do not force persistence changes.
 - **Application services are the only orchestration point**: `IngestService` and `RecallService` are the sole place where repositories, extractors, and pipeline hooks are coordinated.

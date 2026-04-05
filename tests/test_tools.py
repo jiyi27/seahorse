@@ -54,6 +54,20 @@ def test_recall_context_returns_string_payload() -> None:
     assert "Prefers direct answers." in payload["user_model"]
 
 
+def test_recall_context_returns_none_when_user_model_missing() -> None:
+    service = RecallService(
+        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        user_model_repository=FakeUserModelRepository(),
+    )
+
+    payload = recall_context(service)
+
+    assert payload == {
+        "core_rule": "Be precise.",
+        "user_model": None,
+    }
+
+
 def test_ingest_turn_normalizes_messages_and_returns_result() -> None:
     service = IngestService(
         core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),

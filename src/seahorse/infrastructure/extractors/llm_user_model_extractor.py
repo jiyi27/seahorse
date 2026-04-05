@@ -5,6 +5,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from seahorse import logger
 from seahorse.domain.models import (
     ConversationInput,
     CoreRule,
@@ -26,13 +27,42 @@ class LLMUserModelExtractor:
         current_user_model: UserModel | None,
         core_rule: CoreRule,
     ) -> UserModelPatch:
+        logger.info(
+            "extractor.extract.started",
+            {
+                "source": conversation.source,
+                "session_id": conversation.session_id,
+                "has_user_model": current_user_model is not None,
+            },
+        )
         system_prompt = self._prompt_path.read_text(encoding="utf-8").strip()
         user_prompt = self._build_user_prompt(conversation, current_user_model, core_rule)
         raw_output = self._provider.complete(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
         )
-        return self._parse_output(raw_output)
+        logger.debug(
+            "extractor.llm_output.received",
+            {
+                "raw_output": raw_output,
+                "raw_output_len": len(raw_output),
+                "has_code_fence": raw_output.strip().startswith("```"),
+            },
+        )
+        patch = self._parse_output(raw_output)
+        logger.info(
+            "extractor.extract.succeeded",
+            {
+                "summary_updated": bool(patch.summary.strip()),
+                "facts_add": len(patch.facts_to_add),
+                "facts_remove": len(patch.facts_to_remove),
+                "prefs_add": len(patch.preferences_to_add),
+                "prefs_remove": len(patch.preferences_to_remove),
+                "constraints_add": len(patch.constraints_to_add),
+                "constraints_remove": len(patch.constraints_to_remove),
+            },
+        )
+        return patch
 
     def _build_user_prompt(
         self,
@@ -72,11 +102,13 @@ class LLMUserModelExtractor:
         try:
             payload = json.loads(normalized)
         except json.JSONDecodeError as exc:
+            logger.error("extractor.parse.json_error", {}, exc=exc)
             raise RuntimeError("LLM extractor returned invalid JSON") from exc
 
         try:
             return UserModelPatch.model_validate(payload)
         except ValidationError as exc:
+            logger.error("extractor.parse.validation_error", {}, exc=exc)
             raise RuntimeError("LLM extractor returned an invalid patch payload") from exc
 
     def _strip_code_fence(self, content: str) -> str:

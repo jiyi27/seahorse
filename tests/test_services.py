@@ -77,6 +77,7 @@ def test_ingest_service_merges_and_persists_user_model() -> None:
         UserModelPatch(
             summary="The user prefers concise technical answers.",
             preferences_to_add=["Concise answers"],
+            preferences_to_remove=[],
             constraints_to_add=["Avoid unnecessary fluff"],
         )
     )
@@ -105,6 +106,32 @@ def test_ingest_service_merges_and_persists_user_model() -> None:
     assert episode_pipeline.calls == 1
 
 
+def test_ingest_service_reports_no_update_for_empty_initial_patch() -> None:
+    core_rule_repo = FakeCoreRuleRepository(CoreRule(content="Be precise."))
+    user_model_repo = FakeUserModelRepository()
+    extractor = FakeExtractor(UserModelPatch())
+    episode_pipeline = FakeEpisodePipeline()
+    service = IngestService(
+        core_rule_repository=core_rule_repo,
+        user_model_repository=user_model_repo,
+        extractor=extractor,
+        merger=UserModelMerger(),
+        episode_pipeline=episode_pipeline,
+    )
+
+    result = service.ingest(
+        ConversationInput(
+            source="mcp",
+            messages=[Message(role="user", text="Hello there.")],
+        )
+    )
+
+    assert result.user_model_updated is False
+    assert result.user_model.version == 1
+    assert len(user_model_repo.saved) == 1
+    assert episode_pipeline.calls == 1
+
+
 def test_merger_keeps_output_deterministic_and_removes_stale_items() -> None:
     merger = UserModelMerger()
     current = UserModel(
@@ -121,12 +148,52 @@ def test_merger_keeps_output_deterministic_and_removes_stale_items() -> None:
         UserModelPatch(
             summary="Enjoys pragmatic, concise answers.",
             facts_to_add=["Uses Python", "Builds memory systems"],
-            stale_items_to_remove=["Works on agent systems"],
+            facts_to_remove=["Works on agent systems"],
         ),
     )
 
-    assert "Enjoys pragmatic, concise answers." in merged.content
-    assert "- Uses Python" in merged.content
-    assert "- Builds memory systems" in merged.content
-    assert "Works on agent systems" not in merged.content
-    assert merged.version == current.version + 1
+    assert merged.changed is True
+    assert "Enjoys pragmatic, concise answers." in merged.user_model.content
+    assert "- Uses Python" in merged.user_model.content
+    assert "- Builds memory systems" in merged.user_model.content
+    assert "Works on agent systems" not in merged.user_model.content
+    assert merged.user_model.version == current.version + 1
+
+
+def test_merger_removes_only_target_section_items() -> None:
+    merger = UserModelMerger()
+    current = UserModel(
+        content=(
+            "## Summary\n\nTracks stable user preferences.\n\n"
+            "## Facts\n\n- Python\n- Uses macOS\n\n"
+            "## Preferences\n\n- Python\n- Concise answers\n\n"
+            "## Constraints\n\n- None\n"
+        )
+    )
+
+    merged = merger.merge(
+        current,
+        UserModelPatch(
+            preferences_to_remove=["Python"],
+        ),
+    )
+
+    assert "- Python" in merged.user_model.content
+    assert "## Facts\n\n- Python\n- Uses macOS" in merged.user_model.content
+    assert "## Preferences\n\n- Concise answers" in merged.user_model.content
+
+
+def test_merger_preserves_multiline_summary() -> None:
+    merger = UserModelMerger()
+    current = UserModel(
+        content=(
+            "## Summary\n\nFirst paragraph.\nSecond paragraph.\n\n"
+            "## Facts\n\n- Uses Python\n\n"
+            "## Preferences\n\n- Concise answers\n\n"
+            "## Constraints\n\n- None\n"
+        )
+    )
+
+    merged = merger.merge(current, UserModelPatch())
+
+    assert "## Summary\n\nFirst paragraph.\nSecond paragraph." in merged.user_model.content

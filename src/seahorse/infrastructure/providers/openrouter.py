@@ -4,6 +4,7 @@ from typing import Any
 
 import httpx
 
+from seahorse import logger
 from seahorse.domain.models import ProviderSettings
 
 
@@ -27,6 +28,15 @@ class OpenRouterProvider:
         user_prompt: str,
     ) -> str:
         url = f"{self._settings.base_url.rstrip('/')}/chat/completions"
+        logger.debug(
+            "openrouter.request.started",
+            {
+                "model": self._settings.model,
+                "url": url,
+                "system_len": len(system_prompt),
+                "user_len": len(user_prompt),
+            },
+        )
         headers = {
             "Authorization": f"Bearer {self._settings.api_key}",
             "Content-Type": "application/json",
@@ -49,14 +59,39 @@ class OpenRouterProvider:
             response = self._http_client.post(url, headers=headers, json=payload)
             response.raise_for_status()
         except httpx.HTTPError as exc:
+            logger.error(
+                "openrouter.request.http_error",
+                {"model": self._settings.model, "url": url},
+                exc=exc,
+            )
             raise RuntimeError(f"OpenRouter request failed: {exc}") from exc
 
         try:
             body = response.json()
         except ValueError as exc:
+            logger.error(
+                "openrouter.request.bad_json",
+                {"model": self._settings.model},
+                exc=exc,
+            )
             raise RuntimeError("OpenRouter returned invalid JSON") from exc
+        logger.debug(
+            "openrouter.request.succeeded",
+            {
+                "model": self._settings.model,
+                "response_len": len(response.text),
+                "status_code": response.status_code,
+            },
+        )
         choices = body.get("choices") or []
         if not choices:
+            logger.error(
+                "openrouter.request.bad_schema",
+                {
+                    "model": self._settings.model,
+                    "body_keys": sorted(body.keys()),
+                },
+            )
             raise RuntimeError("OpenRouter response did not include choices")
 
         message = choices[0].get("message") or {}
@@ -74,4 +109,11 @@ class OpenRouterProvider:
             if merged:
                 return merged
 
+        logger.error(
+            "openrouter.request.no_content",
+            {
+                "model": self._settings.model,
+                "content_type": type(content).__name__,
+            },
+        )
         raise RuntimeError("OpenRouter response did not include textual content")

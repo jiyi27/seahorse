@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+import uuid
 
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
+from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field, ValidationError
 
+from seahorse import logger
 from seahorse.bootstrap import AppContainer, build_app_container
 from seahorse.tools.ingest_turn import ingest_turn
 from seahorse.tools.recall_context import recall_context
@@ -24,12 +28,79 @@ class IngestRequest(BaseModel):
 def create_http_app(container: AppContainer) -> FastAPI:
     app = FastAPI(title="Seahorse", version="0.1.0")
 
+    @app.middleware("http")
+    async def attach_context_id(request: Request, call_next):
+        context_id = request.headers.get("X-Request-Id") or str(uuid.uuid4())[:8]
+        logger.set_context_id(context_id)
+        try:
+            response = await call_next(request)
+            response.headers["X-Request-Id"] = context_id
+            return response
+        finally:
+            logger.clear_context_id()
+
+    @app.exception_handler(RequestValidationError)
+    async def request_validation_error_handler(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
+        logger.error(
+            "http.validation_error",
+            {"path": request.url.path, "method": request.method},
+            exc=exc,
+        )
+        return JSONResponse(
+            status_code=422,
+            content={"error": "Invalid request payload", "type": type(exc).__name__},
+        )
+
+    @app.exception_handler(ValidationError)
+    async def pydantic_validation_error_handler(
+        request: Request, exc: ValidationError
+    ) -> JSONResponse:
+        logger.error(
+            "http.validation_error",
+            {"path": request.url.path, "method": request.method},
+            exc=exc,
+        )
+        return JSONResponse(
+            status_code=422,
+            content={"error": "Invalid request payload", "type": type(exc).__name__},
+        )
+
+    @app.exception_handler(RuntimeError)
+    async def runtime_error_handler(
+        request: Request, exc: RuntimeError
+    ) -> JSONResponse:
+        logger.error(
+            "http.runtime_error",
+            {"path": request.url.path, "method": request.method},
+            exc=exc,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"error": str(exc), "type": type(exc).__name__},
+        )
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
+        logger.error(
+            "http.unhandled_error",
+            {"path": request.url.path, "method": request.method},
+            exc=exc,
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Internal server error", "type": type(exc).__name__},
+        )
+
     @app.get("/health")
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
     @app.get("/memory/context")
-    def get_memory_context() -> dict[str, str]:
+    def get_memory_context() -> dict[str, str | None]:
         return recall_context(container.recall_service)
 
     @app.post("/memory/ingest")

@@ -42,6 +42,11 @@ class FakeEpisodePipeline:
         return None
 
 
+class FailingExtractor:
+    def extract(self, conversation, current_user_model, core_rule) -> UserModelPatch:
+        raise RuntimeError("Extractor exploded")
+
+
 def build_test_client() -> TestClient:
     recall_service = RecallService(
         core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
@@ -57,7 +62,6 @@ def build_test_client() -> TestClient:
         episode_pipeline=FakeEpisodePipeline(),
     )
     container = AppContainer(
-        paths=None,  # type: ignore[arg-type]
         recall_service=recall_service,
         ingest_service=ingest_service,
     )
@@ -100,3 +104,77 @@ def test_memory_ingest_endpoint_updates_user_model() -> None:
     assert payload["user_model_updated"] is True
     assert payload["version"] == 1
     assert "Concise answers" in payload["user_model"]
+
+
+def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
+    recall_service = RecallService(
+        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        user_model_repository=FakeUserModelRepository(),
+    )
+    ingest_service = IngestService(
+        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        user_model_repository=FakeUserModelRepository(),
+        extractor=FailingExtractor(),
+        merger=UserModelMerger(),
+        episode_pipeline=FakeEpisodePipeline(),
+    )
+    container = AppContainer(
+        recall_service=recall_service,
+        ingest_service=ingest_service,
+    )
+    client = TestClient(create_http_app(container), raise_server_exceptions=False)
+
+    response = client.post(
+        "/memory/ingest",
+        json={
+            "session_id": "session-1",
+            "messages": [{"role": "user", "text": "Please be concise."}],
+        },
+    )
+
+    assert response.status_code == 500
+    assert response.headers["x-request-id"]
+    assert response.json() == {
+        "error": "Extractor exploded",
+        "type": "RuntimeError",
+    }
+
+
+def test_memory_ingest_endpoint_returns_structured_validation_error() -> None:
+    client = build_test_client()
+
+    response = client.post("/memory/ingest", json={})
+
+    assert response.status_code == 422
+    assert response.headers["x-request-id"]
+    assert response.json() == {
+        "error": "Invalid request payload",
+        "type": "ValidationError",
+    }
+
+
+def test_memory_context_endpoint_returns_null_when_user_model_missing() -> None:
+    recall_service = RecallService(
+        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        user_model_repository=FakeUserModelRepository(),
+    )
+    ingest_service = IngestService(
+        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        user_model_repository=FakeUserModelRepository(),
+        extractor=FakeExtractor(),
+        merger=UserModelMerger(),
+        episode_pipeline=FakeEpisodePipeline(),
+    )
+    container = AppContainer(
+        recall_service=recall_service,
+        ingest_service=ingest_service,
+    )
+    client = TestClient(create_http_app(container))
+
+    response = client.get("/memory/context")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "core_rule": "Be precise.",
+        "user_model": None,
+    }

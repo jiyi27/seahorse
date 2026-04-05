@@ -19,14 +19,22 @@ def create_mcp_server(container: AppContainer) -> FastMCP:
 
     @server.tool(
         name="recall_context",
-        description="Load stable memory context including core rule and user model.",
+        description=(
+            "Call at the start of every session to load the user's persistent "
+            "memory context, including behavioral rules and accumulated profile. "
+            "Use this before personalizing a response."
+        ),
     )
-    def recall_context_tool() -> dict[str, str]:
+    def recall_context_tool() -> dict[str, str | None]:
         return recall_context(container.recall_service)
 
     @server.tool(
         name="ingest_turn",
-        description="Ingest a conversation turn or summary to update the user model.",
+        description=(
+            "Call at the end of a session or after a significant exchange to persist "
+            "new stable facts, preferences, or constraints learned about the user. "
+            "Do not call this for one-off requests that imply no durable preference."
+        ),
     )
     def ingest_turn_tool(
         content: str | None = None,

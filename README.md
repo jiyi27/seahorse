@@ -2,6 +2,22 @@
 
 Seahorse is a single-user memory service for agent systems.
 
+## Configuration
+
+Copy `.env.example` to `.env` and set at least:
+
+- `OPENROUTER_API_KEY`
+- `SEAHORSE_MODEL`
+
+Optional settings:
+
+- `OPENROUTER_BASE_URL`
+- `SEAHORSE_TIMEOUT_SECONDS`
+- `SEAHORSE_APP_NAME`
+- `SEAHORSE_HTTP_REFERER`
+- `SEAHORSE_LOG_DIR`
+- `SEAHORSE_LOG_LEVEL`
+
 The current skeleton implements Phase 1 from [docs/architecture_v2.md](/Users/david/codes/agent/seahorse/docs/architecture_v2.md):
 
 1. Domain models and protocols

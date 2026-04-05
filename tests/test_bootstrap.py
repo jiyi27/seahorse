@@ -3,7 +3,11 @@ from __future__ import annotations
 from pathlib import Path
 
 from seahorse.bootstrap import build_app_container
-from seahorse.infrastructure.config import AppPaths, load_provider_settings_from_env
+from seahorse.infrastructure.config import (
+    AppPaths,
+    load_logger_settings_from_env,
+    load_provider_settings_from_env,
+)
 
 
 def test_load_provider_settings_from_env(monkeypatch) -> None:
@@ -26,6 +30,16 @@ def test_app_paths_resolve_expected_locations(tmp_path: Path) -> None:
     assert paths.prompt_dir == tmp_path / "src" / "seahorse" / "prompts"
 
 
+def test_load_logger_settings_from_env(monkeypatch) -> None:
+    monkeypatch.setenv("SEAHORSE_LOG_DIR", "var/logs/seahorse")
+    monkeypatch.setenv("SEAHORSE_LOG_LEVEL", "debug")
+
+    settings = load_logger_settings_from_env()
+
+    assert settings.log_dir == "var/logs/seahorse"
+    assert settings.log_level == "debug"
+
+
 def test_build_app_container_wires_services(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
     monkeypatch.setenv("SEAHORSE_MODEL", "openai/gpt-4.1-mini")
@@ -39,6 +53,5 @@ def test_build_app_container_wires_services(monkeypatch, tmp_path: Path) -> None
 
     container = build_app_container(tmp_path)
 
-    assert container.paths.storage.data_dir == tmp_path / "data"
     assert container.recall_service is not None
     assert container.ingest_service is not None

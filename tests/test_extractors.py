@@ -32,9 +32,11 @@ def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Pa
     provider = FakeProvider(
         (
             '{"summary":"Prefers concise answers.",'
+            '"facts_to_remove":[],'
             '"preferences_to_add":["Concise answers"],'
+            '"preferences_to_remove":[],'
             '"facts_to_add":["Uses Python"],'
-            '"constraints_to_add":[],"stale_items_to_remove":[]}'
+            '"constraints_to_add":[],"constraints_to_remove":[]}'
         )
     )
     extractor = LLMUserModelExtractor(provider=provider, prompt_path=prompt_path)
@@ -51,6 +53,7 @@ def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Pa
     assert patch.summary == "Prefers concise answers."
     assert patch.preferences_to_add == ["Concise answers"]
     assert patch.facts_to_add == ["Uses Python"]
+    assert patch.facts_to_remove == []
     assert provider.calls == 1
     assert "Be precise." in provider.last_user_prompt
     assert "I use Python." in provider.last_user_prompt

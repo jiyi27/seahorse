@@ -43,9 +43,11 @@ class ConversationInput(BaseModel):
 class UserModelPatch(BaseModel):
     summary: str = ""
     facts_to_add: list[str] = Field(default_factory=list)
+    facts_to_remove: list[str] = Field(default_factory=list)
     preferences_to_add: list[str] = Field(default_factory=list)
+    preferences_to_remove: list[str] = Field(default_factory=list)
     constraints_to_add: list[str] = Field(default_factory=list)
-    stale_items_to_remove: list[str] = Field(default_factory=list)
+    constraints_to_remove: list[str] = Field(default_factory=list)
 
 
 class RecallContext(BaseModel):

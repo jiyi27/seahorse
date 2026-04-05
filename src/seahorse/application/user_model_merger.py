@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 from collections import OrderedDict
+from dataclasses import dataclass
 
 from seahorse.domain.models import UserModel, UserModelPatch, utc_now
+
+
+@dataclass(frozen=True)
+class MergeResult:
+    user_model: UserModel
+    changed: bool
 
 
 class UserModelMerger:
@@ -13,28 +20,41 @@ class UserModelMerger:
     _PREFERENCES_HEADER = "## Preferences"
     _CONSTRAINTS_HEADER = "## Constraints"
 
-    def merge(self, current: UserModel | None, patch: UserModelPatch) -> UserModel:
+    def merge(self, current: UserModel | None, patch: UserModelPatch) -> MergeResult:
         existing = self._parse_markdown(current.content if current else "")
 
         summary = patch.summary.strip() or existing["summary"]
-        facts = self._merge_list(
-            existing["facts"], patch.facts_to_add, patch.stale_items_to_remove
-        )
+        facts = self._merge_list(existing["facts"], patch.facts_to_add, patch.facts_to_remove)
         preferences = self._merge_list(
             existing["preferences"],
             patch.preferences_to_add,
-            patch.stale_items_to_remove,
+            patch.preferences_to_remove,
         )
         constraints = self._merge_list(
             existing["constraints"],
             patch.constraints_to_add,
-            patch.stale_items_to_remove,
+            patch.constraints_to_remove,
         )
 
         content = self._render_markdown(summary, facts, preferences, constraints)
         version = 1 if current is None else current.version + 1
+        user_model = UserModel(content=content, updated_at=utc_now(), version=version)
+        changed = current is None and bool(patch.summary.strip())
+        changed = changed or any(
+            item
+            for item in (
+                patch.facts_to_add
+                + patch.facts_to_remove
+                + patch.preferences_to_add
+                + patch.preferences_to_remove
+                + patch.constraints_to_add
+                + patch.constraints_to_remove
+            )
+        )
+        if current is not None:
+            changed = current.content != content
 
-        return UserModel(content=content, updated_at=utc_now(), version=version)
+        return MergeResult(user_model=user_model, changed=changed)
 
     def _parse_markdown(self, content: str) -> dict[str, str | list[str]]:
         sections: dict[str, str | list[str]] = {
@@ -43,6 +63,7 @@ class UserModelMerger:
             "preferences": [],
             "constraints": [],
         }
+        summary_lines: list[str] = []
         current_section: str | None = None
 
         for raw_line in content.splitlines():
@@ -62,17 +83,14 @@ class UserModelMerger:
             if not current_section or not line:
                 continue
             if current_section == "summary":
-                sections["summary"] = (
-                    f"{sections['summary']} {line}".strip()
-                    if sections["summary"]
-                    else line
-                )
+                summary_lines.append(line)
                 continue
             if line.startswith("- "):
                 section_items = sections[current_section]
                 assert isinstance(section_items, list)
                 section_items.append(line[2:].strip())
 
+        sections["summary"] = "\n".join(summary_lines).strip()
         return sections
 
     def _merge_list(

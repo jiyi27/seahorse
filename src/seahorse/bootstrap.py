@@ -3,10 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from seahorse import logger
 from seahorse.application.ingest_service import IngestService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
-from seahorse.infrastructure.config import AppPaths, load_provider_settings_from_env
+from seahorse.infrastructure.config import (
+    AppPaths,
+    load_logger_settings_from_env,
+    load_provider_settings_from_env,
+)
 from seahorse.infrastructure.episodes.noop_episode_pipeline import NoopEpisodePipeline
 from seahorse.infrastructure.extractors.llm_user_model_extractor import (
     LLMUserModelExtractor,
@@ -22,13 +27,18 @@ from seahorse.infrastructure.repositories.user_model_markdown import (
 
 @dataclass(frozen=True)
 class AppContainer:
-    paths: AppPaths
     recall_service: RecallService
     ingest_service: IngestService
 
 
 def build_app_container(project_root: Path) -> AppContainer:
     paths = AppPaths.from_project_root(project_root)
+    logger_settings = load_logger_settings_from_env()
+    log_dir = Path(logger_settings.log_dir)
+    if not log_dir.is_absolute():
+        log_dir = project_root / log_dir
+    logger.configure(log_dir=log_dir, level=logger_settings.log_level)
+    logger.info("seahorse.startup", {"project_root": str(project_root)})
     provider_settings = load_provider_settings_from_env()
 
     core_rule_repository = MarkdownCoreRuleRepository(paths.storage.core_rule_path)
@@ -52,7 +62,6 @@ def build_app_container(project_root: Path) -> AppContainer:
     )
 
     return AppContainer(
-        paths=paths,
         recall_service=recall_service,
         ingest_service=ingest_service,
     )
