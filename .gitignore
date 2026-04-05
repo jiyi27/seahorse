@@ -1,5 +1,51 @@
-.venv/
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+.venv/
+.python-version
+
+# Testing & coverage
 .pytest_cache/
-*.pyc
+.coverage
+htmlcov/
+coverage/
+
+# Type checking & linting
+.mypy_cache/
+.ruff_cache/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data & storage
 data/
+*.db
+
+# Logs
+logs/
+*.log
+
+# Misc
+*.bak
+*.tmp
+*.zip
+*.tar.gz

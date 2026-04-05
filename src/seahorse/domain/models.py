@@ -56,3 +56,13 @@ class RecallContext(BaseModel):
 class IngestResult(BaseModel):
     user_model: UserModel
     user_model_updated: bool
+
+
+class ProviderSettings(BaseModel):
+    provider: Literal["openrouter"] = "openrouter"
+    model: str
+    api_key: str
+    base_url: str = "https://openrouter.ai/api/v1"
+    timeout_seconds: float = 60.0
+    app_name: str | None = "Seahorse"
+    referer: str | None = None
