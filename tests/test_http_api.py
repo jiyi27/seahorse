@@ -1,0 +1,102 @@
+from __future__ import annotations
+
+from fastapi.testclient import TestClient
+
+from seahorse.api.http_server import create_http_app
+from seahorse.application.ingest_service import IngestService
+from seahorse.application.recall_service import RecallService
+from seahorse.application.user_model_merger import UserModelMerger
+from seahorse.bootstrap import AppContainer
+from seahorse.domain.models import CoreRule, UserModel, UserModelPatch
+
+
+class FakeCoreRuleRepository:
+    def __init__(self, model: CoreRule) -> None:
+        self.model = model
+
+    def load(self) -> CoreRule:
+        return self.model
+
+
+class FakeUserModelRepository:
+    def __init__(self, model: UserModel | None = None) -> None:
+        self.model = model
+
+    def load(self) -> UserModel | None:
+        return self.model
+
+    def save(self, model: UserModel) -> None:
+        self.model = model
+
+
+class FakeExtractor:
+    def extract(self, conversation, current_user_model, core_rule) -> UserModelPatch:
+        return UserModelPatch(
+            summary="Prefers concise answers.",
+            preferences_to_add=["Concise answers"],
+        )
+
+
+class FakeEpisodePipeline:
+    def process(self, conversation) -> None:
+        return None
+
+
+def build_test_client() -> TestClient:
+    recall_service = RecallService(
+        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        user_model_repository=FakeUserModelRepository(
+            UserModel(content="## Summary\n\nPrefers concise answers.\n")
+        ),
+    )
+    ingest_service = IngestService(
+        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        user_model_repository=FakeUserModelRepository(),
+        extractor=FakeExtractor(),
+        merger=UserModelMerger(),
+        episode_pipeline=FakeEpisodePipeline(),
+    )
+    container = AppContainer(
+        paths=None,  # type: ignore[arg-type]
+        recall_service=recall_service,
+        ingest_service=ingest_service,
+    )
+    return TestClient(create_http_app(container))
+
+
+def test_health_endpoint_returns_ok() -> None:
+    client = build_test_client()
+
+    response = client.get("/health")
+
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_memory_context_endpoint_returns_stable_context() -> None:
+    client = build_test_client()
+
+    response = client.get("/memory/context")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["core_rule"] == "Be precise."
+    assert "Prefers concise answers." in payload["user_model"]
+
+
+def test_memory_ingest_endpoint_updates_user_model() -> None:
+    client = build_test_client()
+
+    response = client.post(
+        "/memory/ingest",
+        json={
+            "session_id": "session-1",
+            "messages": [{"role": "user", "text": "Please be concise."}],
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["user_model_updated"] is True
+    assert payload["version"] == 1
+    assert "Concise answers" in payload["user_model"]
