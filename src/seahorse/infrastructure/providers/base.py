@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from typing import Protocol
+from abc import ABC, abstractmethod
 
 
-class LLMProvider(Protocol):
+class LLMProvider(ABC):
+    @abstractmethod
     def complete(
         self,
         *,
         system_prompt: str,
         user_prompt: str,
-    ) -> str: ...
+    ) -> str:
+        raise NotImplementedError

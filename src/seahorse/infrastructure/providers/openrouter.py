@@ -6,9 +6,10 @@ import httpx
 
 from seahorse import logger
 from seahorse.domain.models import ProviderSettings
+from seahorse.infrastructure.providers.base import LLMProvider
 
 
-class OpenRouterProvider:
+class OpenRouterProvider(LLMProvider):
     def __init__(
         self,
         settings: ProviderSettings,

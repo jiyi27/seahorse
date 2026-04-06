@@ -9,10 +9,11 @@ from seahorse.domain.models import ConversationInput, CoreRule, Message, Provide
 from seahorse.infrastructure.extractors.llm_user_model_extractor import (
     LLMUserModelExtractor,
 )
+from seahorse.infrastructure.providers.base import LLMProvider
 from seahorse.infrastructure.providers.openrouter import OpenRouterProvider
 
 
-class FakeProvider:
+class FakeProvider(LLMProvider):
     def __init__(self, response: str) -> None:
         self.response = response
         self.calls = 0
