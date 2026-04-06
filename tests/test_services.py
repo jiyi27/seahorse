@@ -42,7 +42,6 @@ class FakeExtractor:
         self,
         conversation: ConversationInput,
         current_user_model: UserModel | None,
-        persona: Persona,
     ) -> UserModelPatch:
         self.calls += 1
         return self.patch
@@ -71,7 +70,6 @@ def test_recall_service_returns_persona_and_user_model() -> None:
 
 
 def test_ingest_service_merges_and_persists_user_model() -> None:
-    persona_repo = FakePersonaRepository(Persona(content="Be precise."))
     user_model_repo = FakeUserModelRepository()
     extractor = FakeExtractor(
         UserModelPatch(
@@ -83,7 +81,6 @@ def test_ingest_service_merges_and_persists_user_model() -> None:
     )
     episode_pipeline = FakeEpisodePipeline()
     service = IngestService(
-        persona_repository=persona_repo,
         user_model_repository=user_model_repo,
         extractor=extractor,
         merger=UserModelMerger(),
@@ -107,12 +104,10 @@ def test_ingest_service_merges_and_persists_user_model() -> None:
 
 
 def test_ingest_service_reports_no_update_for_empty_initial_patch() -> None:
-    persona_repo = FakePersonaRepository(Persona(content="Be precise."))
     user_model_repo = FakeUserModelRepository()
     extractor = FakeExtractor(UserModelPatch())
     episode_pipeline = FakeEpisodePipeline()
     service = IngestService(
-        persona_repository=persona_repo,
         user_model_repository=user_model_repo,
         extractor=extractor,
         merger=UserModelMerger(),

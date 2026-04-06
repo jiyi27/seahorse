@@ -3,20 +3,18 @@ from __future__ import annotations
 from seahorse import logger
 from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.domain.models import ConversationInput, IngestResult
-from seahorse.domain.repositories import PersonaRepository, UserModelRepository
+from seahorse.domain.repositories import UserModelRepository
 from seahorse.domain.services import EpisodePipeline, UserModelExtractor
 
 
 class IngestService:
     def __init__(
         self,
-        persona_repository: PersonaRepository,
         user_model_repository: UserModelRepository,
         extractor: UserModelExtractor,
         merger: UserModelMerger,
         episode_pipeline: EpisodePipeline,
     ) -> None:
-        self._persona_repository = persona_repository
         self._user_model_repository = user_model_repository
         self._extractor = extractor
         self._merger = merger
@@ -30,10 +28,9 @@ class IngestService:
                 "session_id": conversation.session_id,
             },
         )
-        persona = self._persona_repository.load()
         current_user_model = self._user_model_repository.load()
 
-        patch = self._extractor.extract(conversation, current_user_model, persona)
+        patch = self._extractor.extract(conversation, current_user_model)
         merged = self._merger.merge(current_user_model, patch)
         merged_user_model = merged.user_model
 

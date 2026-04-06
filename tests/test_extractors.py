@@ -6,7 +6,7 @@ import httpx
 import pytest
 
 from seahorse.constants import OPENROUTER_BASE_URL
-from seahorse.domain.models import ConversationInput, Message, Persona, ProviderSettings, UserModel
+from seahorse.domain.models import ConversationInput, Message, ProviderSettings, UserModel
 from seahorse.infrastructure.config import USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
 from seahorse.infrastructure.extractors.llm_user_model_extractor import (
     LLMUserModelExtractor,
@@ -50,7 +50,6 @@ def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Pa
             messages=[Message(role="user", text="Please keep answers concise. I use Python.")],
         ),
         current_user_model=UserModel(content="## Summary\n\nNo summary yet.\n", version=2),
-        persona=Persona(content="Be precise."),
     )
 
     assert patch.summary == "Prefers concise answers."
@@ -58,7 +57,7 @@ def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Pa
     assert patch.facts_to_add == ["Uses Python"]
     assert patch.facts_to_remove == []
     assert provider.calls == 1
-    assert "Be precise." in provider.last_user_prompt
+    assert "Current user model:" in provider.last_user_prompt
     assert "I use Python." in provider.last_user_prompt
 
 
@@ -72,7 +71,6 @@ def test_llm_user_model_extractor_rejects_invalid_json(tmp_path: Path) -> None:
         extractor.extract(
             conversation=ConversationInput(source="http", content="User prefers brief answers."),
             current_user_model=None,
-            persona=Persona(content="Be precise."),
         )
 
 

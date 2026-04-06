@@ -62,7 +62,6 @@ def build_app_container(
         user_model_repository=user_model_repository,
     )
     ingest_service = IngestService(
-        persona_repository=persona_repository,
         user_model_repository=user_model_repository,
         extractor=extractor,
         merger=UserModelMerger(),

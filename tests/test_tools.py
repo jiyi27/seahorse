@@ -31,7 +31,7 @@ class FakeUserModelRepository:
 
 
 class FakeExtractor:
-    def extract(self, conversation, current_user_model, persona) -> UserModelPatch:
+    def extract(self, conversation, current_user_model) -> UserModelPatch:
         return UserModelPatch(
             summary="Prefers direct answers.",
             preferences_to_add=["Direct answers"],
@@ -80,7 +80,6 @@ def test_recall_context_returns_none_when_user_model_missing() -> None:
 
 def test_ingest_turn_normalizes_messages_and_returns_result() -> None:
     service = IngestService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
         extractor=FakeExtractor(),
         merger=UserModelMerger(),
@@ -115,7 +114,6 @@ def test_recall_context_returns_structured_internal_error_on_runtime_failure() -
 
 def test_ingest_turn_returns_structured_internal_error_on_runtime_failure() -> None:
     service = IngestService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
         extractor=FakeExtractor(),
         merger=UserModelMerger(),

@@ -9,7 +9,6 @@ from seahorse import logger
 from seahorse.domain.models import (
     ConversationInput,
     Message,
-    Persona,
     UserModel,
     UserModelPatch,
 )
@@ -25,7 +24,6 @@ class LLMUserModelExtractor:
         self,
         conversation: ConversationInput,
         current_user_model: UserModel | None,
-        persona: Persona,
     ) -> UserModelPatch:
         logger.info(
             "extractor.extract.started",
@@ -36,7 +34,7 @@ class LLMUserModelExtractor:
             },
         )
         system_prompt = self._prompt_path.read_text(encoding="utf-8").strip()
-        user_prompt = self._build_user_prompt(conversation, current_user_model, persona)
+        user_prompt = self._build_user_prompt(conversation, current_user_model)
         raw_output = self._provider.complete(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -68,15 +66,12 @@ class LLMUserModelExtractor:
         self,
         conversation: ConversationInput,
         current_user_model: UserModel | None,
-        persona: Persona,
     ) -> str:
         current_model_content = (
             current_user_model.content if current_user_model else "No user model yet."
         )
         conversation_content = self._render_conversation(conversation)
         return (
-            "Agent persona:\n"
-            f"{persona.content.strip()}\n\n"
             "Current user model:\n"
             f"{current_model_content.strip()}\n\n"
             "Conversation input:\n"

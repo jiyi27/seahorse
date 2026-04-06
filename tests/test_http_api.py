@@ -31,7 +31,7 @@ class FakeUserModelRepository:
 
 
 class FakeExtractor:
-    def extract(self, conversation, current_user_model, persona) -> UserModelPatch:
+    def extract(self, conversation, current_user_model) -> UserModelPatch:
         return UserModelPatch(
             summary="Prefers concise answers.",
             preferences_to_add=["Concise answers"],
@@ -44,7 +44,7 @@ class FakeEpisodePipeline:
 
 
 class FailingExtractor:
-    def extract(self, conversation, current_user_model, persona) -> UserModelPatch:
+    def extract(self, conversation, current_user_model) -> UserModelPatch:
         raise RuntimeError("Extractor exploded")
 
 
@@ -56,7 +56,6 @@ def build_test_client() -> TestClient:
         ),
     )
     ingest_service = IngestService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
         extractor=FakeExtractor(),
         merger=UserModelMerger(),
@@ -115,7 +114,6 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
         user_model_repository=FakeUserModelRepository(),
     )
     ingest_service = IngestService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
         extractor=FailingExtractor(),
         merger=UserModelMerger(),
@@ -167,7 +165,6 @@ def test_memory_context_endpoint_returns_null_when_user_model_missing() -> None:
         user_model_repository=FakeUserModelRepository(),
     )
     ingest_service = IngestService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
         extractor=FakeExtractor(),
         merger=UserModelMerger(),

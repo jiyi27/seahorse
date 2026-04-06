@@ -36,7 +36,7 @@ class FakeUserModelRepository:
 
 
 class FakeExtractor:
-    def extract(self, conversation, current_user_model, persona) -> UserModelPatch:
+    def extract(self, conversation, current_user_model) -> UserModelPatch:
         return UserModelPatch(
             summary="Prefers structured answers.",
             preferences_to_add=["Structured answers"],
@@ -54,7 +54,6 @@ def test_create_mcp_server_registers_expected_tools() -> None:
         user_model_repository=FakeUserModelRepository(),
     )
     ingest_service = IngestService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
         extractor=FakeExtractor(),
         merger=UserModelMerger(),
