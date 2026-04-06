@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from seahorse.domain.models import Persona, utc_now
+from seahorse.domain.models import Persona
 
 
 class MarkdownPersonaRepository:
@@ -12,4 +12,4 @@ class MarkdownPersonaRepository:
     def load(self) -> Persona:
         # Persona markdown is the configured source of the agent's behavior.
         content = self._path.read_text(encoding="utf-8").strip()
-        return Persona(content=content, updated_at=utc_now())
+        return Persona(content=content)

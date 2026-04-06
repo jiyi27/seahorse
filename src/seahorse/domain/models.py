@@ -1,29 +1,44 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
 from typing import Literal, TypedDict
 
 from pydantic import BaseModel, Field, model_validator
 from seahorse.constants import APP_NAME, OPENROUTER_BASE_URL, OPENROUTER_PROVIDER
 
 
-def utc_now() -> datetime:
-    return datetime.now(timezone.utc)
-
-
 type MessageRole = Literal["system", "user", "assistant", "tool"]
 type ConversationSource = Literal["mcp", "http"]
+type FactCategory = Literal[
+    "identity",
+    "personality",
+    "social",
+    "interests",
+    "values",
+    "life_situation",
+    "note",
+]
 
 
 class Persona(BaseModel):
     content: str
-    updated_at: datetime = Field(default_factory=utc_now)
+
+
+class FactItem(BaseModel):
+    id: str
+    category: FactCategory
+    text: str
+
+
+class TextItem(BaseModel):
+    id: str
+    text: str
 
 
 class UserModel(BaseModel):
-    content: str
-    updated_at: datetime = Field(default_factory=utc_now)
-    version: int = 1
+    summary: str = ""
+    facts: list[FactItem] = Field(default_factory=list)
+    preferences: list[TextItem] = Field(default_factory=list)
+    constraints: list[TextItem] = Field(default_factory=list)
 
 
 class Message(BaseModel):
@@ -45,14 +60,19 @@ class ConversationInput(BaseModel):
         return self
 
 
+class FactPatchItem(BaseModel):
+    category: FactCategory
+    text: str
+
+
 class UserModelPatch(BaseModel):
     summary: str = ""
-    facts_to_add: list[str] = Field(default_factory=list)
-    facts_to_remove: list[str] = Field(default_factory=list)
+    facts_to_add: list[FactPatchItem] = Field(default_factory=list)
+    fact_ids_to_remove: list[str] = Field(default_factory=list)
     preferences_to_add: list[str] = Field(default_factory=list)
-    preferences_to_remove: list[str] = Field(default_factory=list)
+    preference_ids_to_remove: list[str] = Field(default_factory=list)
     constraints_to_add: list[str] = Field(default_factory=list)
-    constraints_to_remove: list[str] = Field(default_factory=list)
+    constraint_ids_to_remove: list[str] = Field(default_factory=list)
 
 
 class RecallContext(BaseModel):

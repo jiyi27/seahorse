@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from seahorse.application.recall_service import RecallService
+from seahorse.application.user_model_renderer import UserModelRenderer
 from seahorse.tools.contracts import (
     RECALL_CONTEXT_UNAVAILABLE_HINT,
     RecallContextResult,
@@ -8,7 +9,10 @@ from seahorse.tools.contracts import (
 )
 
 
-def recall_context(service: RecallService) -> RecallContextResult:
+def recall_context(
+    service: RecallService,
+    renderer: UserModelRenderer,
+) -> RecallContextResult:
     try:
         context = service.recall()
     except RuntimeError as exc:
@@ -17,5 +21,7 @@ def recall_context(service: RecallService) -> RecallContextResult:
     return {
         "success": True,
         "persona": context.persona.content,
-        "user_model": context.user_model.content if context.user_model else None,
+        "user_model": (
+            renderer.render_markdown(context.user_model) if context.user_model else None
+        ),
     }

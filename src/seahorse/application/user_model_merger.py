@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-from collections import OrderedDict
 from dataclasses import dataclass
 
-from seahorse.domain.models import UserModel, UserModelPatch, utc_now
+from seahorse.domain.models import FactItem, FactPatchItem, TextItem, UserModel, UserModelPatch
 
 
 @dataclass(frozen=True)
@@ -13,112 +12,107 @@ class MergeResult:
 
 
 class UserModelMerger:
-    """Merge structured patches into a deterministic Markdown document."""
+    """Merge structured patches into the persisted user model."""
 
-    _SUMMARY_HEADER = "## Summary"
-    _FACTS_HEADER = "## Facts"
-    _PREFERENCES_HEADER = "## Preferences"
-    _CONSTRAINTS_HEADER = "## Constraints"
+    _FACT_PREFIX = "fact"
+    _PREFERENCE_PREFIX = "preference"
+    _CONSTRAINT_PREFIX = "constraint"
 
     def merge(self, current: UserModel | None, patch: UserModelPatch) -> MergeResult:
-        existing = self._parse_markdown(current.content if current else "")
+        baseline = current or UserModel()
 
-        summary = patch.summary.strip() or existing["summary"]
-        facts = self._merge_list(existing["facts"], patch.facts_to_add, patch.facts_to_remove)
-        preferences = self._merge_list(
-            existing["preferences"],
+        summary = patch.summary.strip() or baseline.summary
+        facts = self._merge_facts(
+            baseline.facts,
+            patch.facts_to_add,
+            patch.fact_ids_to_remove,
+        )
+        preferences = self._merge_text_items(
+            baseline.preferences,
             patch.preferences_to_add,
-            patch.preferences_to_remove,
+            patch.preference_ids_to_remove,
+            self._PREFERENCE_PREFIX,
         )
-        constraints = self._merge_list(
-            existing["constraints"],
+        constraints = self._merge_text_items(
+            baseline.constraints,
             patch.constraints_to_add,
-            patch.constraints_to_remove,
+            patch.constraint_ids_to_remove,
+            self._CONSTRAINT_PREFIX,
         )
 
-        content = self._render_markdown(summary, facts, preferences, constraints)
-        version = 1 if current is None else current.version + 1
-        user_model = UserModel(content=content, updated_at=utc_now(), version=version)
-        if current is None:
-            changed = bool(patch.summary.strip()) or any(
-                item
-                for item in (
-                    patch.facts_to_add
-                    + patch.facts_to_remove
-                    + patch.preferences_to_add
-                    + patch.preferences_to_remove
-                    + patch.constraints_to_add
-                    + patch.constraints_to_remove
+        user_model = UserModel(
+            summary=summary,
+            facts=facts,
+            preferences=preferences,
+            constraints=constraints,
+        )
+        changed = current is None and bool(summary or facts or preferences or constraints)
+        if current is not None:
+            changed = current != user_model
+
+        if not changed:
+            return MergeResult(user_model=baseline, changed=False)
+        return MergeResult(user_model=user_model, changed=True)
+
+    def _merge_facts(
+        self,
+        existing: list[FactItem],
+        additions: list[FactPatchItem],
+        removals: list[str],
+    ) -> list[FactItem]:
+        removal_ids = {item_id.strip() for item_id in removals if item_id.strip()}
+        merged = [item.model_copy(deep=True) for item in existing if item.id not in removal_ids]
+
+        active_pairs = {(item.category, item.text.strip()) for item in merged if item.text.strip()}
+        next_index = self._next_item_index(merged, self._FACT_PREFIX)
+        for addition in additions:
+            text = addition.text.strip()
+            pair = (addition.category, text)
+            if not text or pair in active_pairs:
+                continue
+            merged.append(
+                FactItem(
+                    id=f"{self._FACT_PREFIX}_{next_index:03d}",
+                    category=addition.category,
+                    text=text,
                 )
             )
-        else:
-            changed = current.content != content
+            active_pairs.add(pair)
+            next_index += 1
+        return merged
 
-        return MergeResult(user_model=user_model, changed=changed)
-
-    def _parse_markdown(self, content: str) -> dict[str, str | list[str]]:
-        sections: dict[str, str | list[str]] = {
-            "summary": "",
-            "facts": [],
-            "preferences": [],
-            "constraints": [],
-        }
-        summary_lines: list[str] = []
-        current_section: str | None = None
-
-        for raw_line in content.splitlines():
-            line = raw_line.strip()
-            if line == self._SUMMARY_HEADER:
-                current_section = "summary"
-                continue
-            if line == self._FACTS_HEADER:
-                current_section = "facts"
-                continue
-            if line == self._PREFERENCES_HEADER:
-                current_section = "preferences"
-                continue
-            if line == self._CONSTRAINTS_HEADER:
-                current_section = "constraints"
-                continue
-            if not current_section or not line:
-                continue
-            if current_section == "summary":
-                summary_lines.append(line)
-                continue
-            if line.startswith("- "):
-                section_items = sections[current_section]
-                assert isinstance(section_items, list)
-                section_items.append(line[2:].strip())
-
-        sections["summary"] = "\n".join(summary_lines).strip()
-        return sections
-
-    def _merge_list(
-        self, existing: list[str], additions: list[str], removals: list[str]
-    ) -> list[str]:
-        normalized_removals = {item.strip() for item in removals if item.strip()}
-        items = [item for item in existing if item.strip() not in normalized_removals]
-        items.extend(item.strip() for item in additions if item.strip())
-
-        ordered: OrderedDict[str, None] = OrderedDict()
-        for item in items:
-            if item:
-                ordered[item] = None
-        return list(ordered.keys())
-
-    def _render_markdown(
+    def _merge_text_items(
         self,
-        summary: str,
-        facts: list[str],
-        preferences: list[str],
-        constraints: list[str],
-    ) -> str:
-        parts = [self._SUMMARY_HEADER, summary or "No summary yet."]
-        parts.extend(self._render_list_section(self._FACTS_HEADER, facts))
-        parts.extend(self._render_list_section(self._PREFERENCES_HEADER, preferences))
-        parts.extend(self._render_list_section(self._CONSTRAINTS_HEADER, constraints))
-        return "\n\n".join(parts).strip() + "\n"
+        existing: list[TextItem],
+        additions: list[str],
+        removals: list[str],
+        prefix: str,
+    ) -> list[TextItem]:
+        removal_ids = {item_id.strip() for item_id in removals if item_id.strip()}
+        merged = [item.model_copy(deep=True) for item in existing if item.id not in removal_ids]
 
-    def _render_list_section(self, header: str, items: list[str]) -> list[str]:
-        rendered_items = "\n".join(f"- {item}" for item in items) if items else "- None"
-        return [header, rendered_items]
+        active_texts = {item.text.strip() for item in merged if item.text.strip()}
+        next_index = self._next_item_index(merged, prefix)
+        for raw_text in additions:
+            text = raw_text.strip()
+            if not text or text in active_texts:
+                continue
+            merged.append(TextItem(id=f"{prefix}_{next_index:03d}", text=text))
+            active_texts.add(text)
+            next_index += 1
+        return merged
+
+    def _next_item_index(self, items: list[FactItem] | list[TextItem], prefix: str) -> int:
+        max_index = 0
+        for item in items:
+            index = self._parse_item_index(item.id, prefix)
+            if index > max_index:
+                max_index = index
+        return max_index + 1
+
+    def _parse_item_index(self, item_id: str, prefix: str) -> int:
+        expected_prefix = f"{prefix}_"
+        if not item_id.startswith(expected_prefix):
+            return 0
+        suffix = item_id[len(expected_prefix) :]
+        return int(suffix) if suffix.isdigit() else 0

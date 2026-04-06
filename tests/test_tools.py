@@ -5,7 +5,8 @@ import pytest
 from seahorse.application.ingest_service import IngestService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
-from seahorse.domain.models import Persona, UserModel, UserModelPatch
+from seahorse.application.user_model_renderer import UserModelRenderer
+from seahorse.domain.models import Persona, TextItem, UserModel, UserModelPatch
 from seahorse.tools.contracts import INGEST_RETRY_HINT, RECALL_CONTEXT_UNAVAILABLE_HINT
 from seahorse.tools.ingest_turn import ingest_turn
 from seahorse.tools.recall_context import recall_context
@@ -52,11 +53,14 @@ def test_recall_context_returns_string_payload() -> None:
     service = RecallService(
         persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(
-            UserModel(content="## Summary\n\nPrefers direct answers.\n")
+            UserModel(
+                summary="Prefers direct answers.",
+                preferences=[TextItem(id="preference_001", text="Direct answers")],
+            )
         ),
     )
 
-    payload = recall_context(service)
+    payload = recall_context(service, UserModelRenderer())
 
     assert payload["success"] is True
     assert payload["persona"] == "Be precise."
@@ -69,7 +73,7 @@ def test_recall_context_returns_none_when_user_model_missing() -> None:
         user_model_repository=FakeUserModelRepository(),
     )
 
-    payload = recall_context(service)
+    payload = recall_context(service, UserModelRenderer())
 
     assert payload == {
         "success": True,
@@ -93,7 +97,6 @@ def test_ingest_turn_normalizes_messages_and_returns_result() -> None:
 
     assert payload["success"] is True
     assert payload["user_model_updated"] is True
-    assert payload["version"] == 1
 
 
 def test_recall_context_returns_structured_internal_error_on_runtime_failure() -> None:
@@ -102,7 +105,7 @@ def test_recall_context_returns_structured_internal_error_on_runtime_failure() -
         user_model_repository=FakeUserModelRepository(),
     )
 
-    payload = recall_context(service)
+    payload = recall_context(service, UserModelRenderer())
 
     assert payload == {
         "success": False,

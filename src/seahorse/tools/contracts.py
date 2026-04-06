@@ -29,7 +29,6 @@ class RecallContextSuccess(TypedDict):
 class IngestTurnSuccess(TypedDict):
     success: Literal[True]
     user_model_updated: bool
-    version: int
 
 
 type RecallContextResult = RecallContextSuccess | ToolFailure

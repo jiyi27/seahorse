@@ -7,8 +7,9 @@ from seahorse.api.http_server import create_http_app
 from seahorse.application.ingest_service import IngestService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
+from seahorse.application.user_model_renderer import UserModelRenderer
 from seahorse.bootstrap import AppContainer
-from seahorse.domain.models import Persona, UserModel, UserModelPatch
+from seahorse.domain.models import Persona, TextItem, UserModel, UserModelPatch
 
 
 class FakePersonaRepository:
@@ -52,7 +53,10 @@ def build_test_client() -> TestClient:
     recall_service = RecallService(
         persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(
-            UserModel(content="## Summary\n\nPrefers concise answers.\n")
+            UserModel(
+                summary="Prefers concise answers.",
+                preferences=[TextItem(id="preference_001", text="Concise answers")],
+            )
         ),
     )
     ingest_service = IngestService(
@@ -64,6 +68,7 @@ def build_test_client() -> TestClient:
     container = AppContainer(
         recall_service=recall_service,
         ingest_service=ingest_service,
+        user_model_renderer=UserModelRenderer(),
     )
     return TestClient(create_http_app(container))
 
@@ -104,7 +109,6 @@ def test_memory_ingest_endpoint_updates_user_model() -> None:
     payload = response.json()
     assert payload["success"] is True
     assert payload["user_model_updated"] is True
-    assert payload["version"] == 1
     assert "user_model" not in payload
 
 
@@ -122,6 +126,7 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
     container = AppContainer(
         recall_service=recall_service,
         ingest_service=ingest_service,
+        user_model_renderer=UserModelRenderer(),
     )
     client = TestClient(create_http_app(container), raise_server_exceptions=False)
 
@@ -173,6 +178,7 @@ def test_memory_context_endpoint_returns_null_when_user_model_missing() -> None:
     container = AppContainer(
         recall_service=recall_service,
         ingest_service=ingest_service,
+        user_model_renderer=UserModelRenderer(),
     )
     client = TestClient(create_http_app(container))
 

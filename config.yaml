@@ -6,7 +6,7 @@ provider:
   # Default: openrouter
   name: openrouter
   # Required for openrouter.
-  model: openai/gpt-4.1-mini
+  model: google/gemini-3.1-flash-lite-preview
   # Default: 60.0
   timeout_seconds: 60.0
 

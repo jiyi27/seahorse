@@ -115,7 +115,9 @@ def create_http_app(container: AppContainer) -> FastAPI:
 
     @app.get(MEMORY_CONTEXT_PATH)
     def get_memory_context() -> JSONResponse:
-        return _http_tool_response(recall_context(container.recall_service))
+        return _http_tool_response(
+            recall_context(container.recall_service, container.user_model_renderer)
+        )
 
     @app.post(MEMORY_INGEST_PATH)
     def post_memory_ingest(request: IngestRequest) -> JSONResponse:

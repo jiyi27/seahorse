@@ -38,6 +38,9 @@ Persona documents live under [`personas/`](/Users/david/codes/agent/seahorse/per
 
 This keeps static agent personality documents separate from mutable user memory in `storage.data_dir`.
 
+The persisted user model is stored as structured JSON in `storage.data_dir/user_model.json`.
+If an older `user_model.md` file is present and the JSON file is missing, Seahorse can still read the legacy markdown format.
+
 ## Current Scope
 
 The current skeleton implements Phase 1 from [docs/architecture_v2.md](/Users/david/codes/agent/seahorse/docs/architecture_v2.md):
@@ -45,7 +48,7 @@ The current skeleton implements Phase 1 from [docs/architecture_v2.md](/Users/da
 1. Domain models and protocols
 2. Application services for ingest and recall
 3. A deterministic user-model merger
-4. Markdown repositories for persona documents and `user_model`
+4. A markdown persona repository plus structured JSON storage for `user_model`
 5. A lightweight provider and LLM extractor boundary
 6. Bootstrap wiring for services and tool adapters
 7. MCP and HTTP transport adapters

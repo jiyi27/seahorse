@@ -15,7 +15,7 @@ DEFAULT_LOG_DIR = "logs"
 DEFAULT_LOG_LEVEL = "info"
 DEFAULT_PROVIDER_TIMEOUT_SECONDS = 60.0
 SUPPORTED_LOG_LEVELS = frozenset({"debug", "info", "warning", "error"})
-USER_MODEL_FILE_NAME = "user_model.md"
+USER_MODEL_FILE_NAME = "user_model.json"
 USER_MODEL_EXTRACTION_PROMPT_FILE_NAME = "user_model_extraction.md"
 
 

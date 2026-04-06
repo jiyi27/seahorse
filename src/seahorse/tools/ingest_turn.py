@@ -36,5 +36,4 @@ def ingest_turn(
     return {
         "success": True,
         "user_model_updated": result.user_model_updated,
-        "version": result.user_model.version,
     }

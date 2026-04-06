@@ -6,7 +6,13 @@ import httpx
 import pytest
 
 from seahorse.constants import OPENROUTER_BASE_URL
-from seahorse.domain.models import ConversationInput, Message, ProviderSettings, UserModel
+from seahorse.domain.models import (
+    ConversationInput,
+    FactItem,
+    Message,
+    ProviderSettings,
+    UserModel,
+)
 from seahorse.infrastructure.config import USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
 from seahorse.infrastructure.extractors.llm_user_model_extractor import (
     LLMUserModelExtractor,
@@ -35,11 +41,11 @@ def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Pa
     provider = FakeProvider(
         (
             '{"summary":"Prefers concise answers.",'
-            '"facts_to_remove":[],'
+            '"fact_ids_to_remove":[],'
             '"preferences_to_add":["Concise answers"],'
-            '"preferences_to_remove":[],'
-            '"facts_to_add":["Uses Python"],'
-            '"constraints_to_add":[],"constraints_to_remove":[]}'
+            '"preference_ids_to_remove":[],'
+            '"facts_to_add":[{"category":"identity","text":"Uses Python"}],'
+            '"constraints_to_add":[],"constraint_ids_to_remove":[]}'
         )
     )
     extractor = LLMUserModelExtractor(provider=provider, prompt_path=prompt_path)
@@ -49,15 +55,21 @@ def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Pa
             source="mcp",
             messages=[Message(role="user", text="Please keep answers concise. I use Python.")],
         ),
-        current_user_model=UserModel(content="## Summary\n\nNo summary yet.\n", version=2),
+        current_user_model=UserModel(
+            summary="Already knows some basics.",
+            facts=[FactItem(id="fact_001", category="identity", text="Uses Rust")],
+        ),
     )
 
     assert patch.summary == "Prefers concise answers."
     assert patch.preferences_to_add == ["Concise answers"]
-    assert patch.facts_to_add == ["Uses Python"]
-    assert patch.facts_to_remove == []
+    assert len(patch.facts_to_add) == 1
+    assert patch.facts_to_add[0].category == "identity"
+    assert patch.facts_to_add[0].text == "Uses Python"
+    assert patch.fact_ids_to_remove == []
     assert provider.calls == 1
     assert "Current user model:" in provider.last_user_prompt
+    assert '"category": "identity"' in provider.last_user_prompt
     assert "I use Python." in provider.last_user_prompt
 
 

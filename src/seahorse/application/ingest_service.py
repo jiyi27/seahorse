@@ -38,18 +38,17 @@ class IngestService:
             "ingest.patch.applied",
             {
                 "user_model_updated": merged.changed,
-                "version": merged_user_model.version,
             },
         )
 
-        self._user_model_repository.save(merged_user_model)
+        if merged.changed:
+            self._user_model_repository.save(merged_user_model)
         self._episode_pipeline.process(conversation)
 
         logger.info(
             "ingest.completed",
             {
                 "user_model_updated": merged.changed,
-                "version": merged_user_model.version,
             },
         )
         return IngestResult(

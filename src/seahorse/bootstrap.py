@@ -7,6 +7,7 @@ from seahorse import logger
 from seahorse.application.ingest_service import IngestService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
+from seahorse.application.user_model_renderer import UserModelRenderer
 from seahorse.infrastructure.config import (
     AppPaths,
     DEFAULT_CONFIG_FILE_NAME,
@@ -21,8 +22,8 @@ from seahorse.infrastructure.extractors.llm_user_model_extractor import (
 from seahorse.infrastructure.providers.config import build_provider_settings
 from seahorse.infrastructure.providers.factory import build_llm_provider
 from seahorse.infrastructure.repositories.persona_markdown import MarkdownPersonaRepository
-from seahorse.infrastructure.repositories.user_model_markdown import (
-    MarkdownUserModelRepository,
+from seahorse.infrastructure.repositories.user_model_json import (
+    JSONUserModelRepository,
 )
 
 
@@ -30,6 +31,7 @@ from seahorse.infrastructure.repositories.user_model_markdown import (
 class AppContainer:
     recall_service: RecallService
     ingest_service: IngestService
+    user_model_renderer: UserModelRenderer
 
 
 def build_app_container(
@@ -48,14 +50,15 @@ def build_app_container(
     logger.info("seahorse.startup", {"project_root": str(project_root)})
     provider_settings = build_provider_settings(app_config.provider, secrets)
 
-    # The selected persona markdown file defines the agent's active persona.
+    # The selected persona Markdown file defines the agent's active persona.
     persona_repository = MarkdownPersonaRepository(paths.persona_path)
-    user_model_repository = MarkdownUserModelRepository(paths.storage.user_model_path)
+    user_model_repository = JSONUserModelRepository(paths.storage.user_model_path)
     provider = build_llm_provider(provider_settings)
     extractor = LLMUserModelExtractor(
         provider=provider,
         prompt_path=paths.user_model_extraction_prompt_path,
     )
+    user_model_renderer = UserModelRenderer()
 
     recall_service = RecallService(
         persona_repository=persona_repository,
@@ -71,4 +74,5 @@ def build_app_container(
     return AppContainer(
         recall_service=recall_service,
         ingest_service=ingest_service,
+        user_model_renderer=user_model_renderer,
     )

@@ -8,6 +8,7 @@ from seahorse.api.mcp_server import build_default_mcp_server, create_mcp_server
 from seahorse.application.ingest_service import IngestService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
+from seahorse.application.user_model_renderer import UserModelRenderer
 from seahorse.bootstrap import AppContainer
 from seahorse.domain.models import Persona, UserModel, UserModelPatch
 from seahorse.infrastructure.config import (
@@ -62,6 +63,7 @@ def test_create_mcp_server_registers_expected_tools() -> None:
     container = AppContainer(
         recall_service=recall_service,
         ingest_service=ingest_service,
+        user_model_renderer=UserModelRenderer(),
     )
 
     server = create_mcp_server(container)

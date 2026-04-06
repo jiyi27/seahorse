@@ -27,7 +27,7 @@ def create_mcp_server(container: AppContainer) -> FastMCP:
         ),
     )
     def recall_context_tool() -> dict[str, str | None]:
-        return recall_context(container.recall_service)
+        return recall_context(container.recall_service, container.user_model_renderer)
 
     @server.tool(
         name="ingest_turn",
