@@ -10,12 +10,13 @@ from pydantic import BaseModel, Field, ValidationError
 
 from seahorse import logger
 from seahorse.bootstrap import AppContainer, build_app_container
+from seahorse.domain.models import MessageRole
 from seahorse.tools.ingest_turn import ingest_turn
 from seahorse.tools.recall_context import recall_context
 
 
 class HTTPMessage(BaseModel):
-    role: str
+    role: MessageRole
     text: str
 
 

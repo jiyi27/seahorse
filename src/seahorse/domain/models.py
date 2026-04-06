@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Literal
+from typing import Literal, TypedDict
 
 from pydantic import BaseModel, Field, model_validator
 
 
 def utc_now() -> datetime:
     return datetime.now(timezone.utc)
+
+
+type MessageRole = Literal["system", "user", "assistant", "tool"]
+type ConversationSource = Literal["mcp", "http"]
 
 
 class CoreRule(BaseModel):
@@ -22,12 +26,12 @@ class UserModel(BaseModel):
 
 
 class Message(BaseModel):
-    role: Literal["system", "user", "assistant", "tool"]
+    role: MessageRole
     text: str
 
 
 class ConversationInput(BaseModel):
-    source: Literal["mcp", "http"]
+    source: ConversationSource
     content: str | None = None
     messages: list[Message] = Field(default_factory=list)
     session_id: str | None = None
@@ -58,6 +62,11 @@ class RecallContext(BaseModel):
 class IngestResult(BaseModel):
     user_model: UserModel
     user_model_updated: bool
+
+
+class InputMessage(TypedDict):
+    role: MessageRole
+    text: str
 
 
 class ProviderSettings(BaseModel):

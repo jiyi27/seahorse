@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 from seahorse.application.ingest_service import IngestService
-from seahorse.domain.models import ConversationInput, Message
+from seahorse.domain.models import (
+    ConversationInput,
+    ConversationSource,
+    InputMessage,
+    Message,
+)
 
 
 def ingest_turn(
     service: IngestService,
     *,
     content: str | None = None,
-    messages: list[dict[str, str]] | None = None,
-    source: str = "mcp",
+    messages: list[InputMessage] | None = None,
+    source: ConversationSource = "mcp",
     session_id: str | None = None,
 ) -> dict[str, object]:
     normalized_messages = [
