@@ -8,8 +8,8 @@ from pydantic import ValidationError
 from seahorse import logger
 from seahorse.domain.models import (
     ConversationInput,
-    CoreRule,
     Message,
+    Persona,
     UserModel,
     UserModelPatch,
 )
@@ -25,7 +25,7 @@ class LLMUserModelExtractor:
         self,
         conversation: ConversationInput,
         current_user_model: UserModel | None,
-        core_rule: CoreRule,
+        persona: Persona,
     ) -> UserModelPatch:
         logger.info(
             "extractor.extract.started",
@@ -36,7 +36,7 @@ class LLMUserModelExtractor:
             },
         )
         system_prompt = self._prompt_path.read_text(encoding="utf-8").strip()
-        user_prompt = self._build_user_prompt(conversation, current_user_model, core_rule)
+        user_prompt = self._build_user_prompt(conversation, current_user_model, persona)
         raw_output = self._provider.complete(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
@@ -68,15 +68,15 @@ class LLMUserModelExtractor:
         self,
         conversation: ConversationInput,
         current_user_model: UserModel | None,
-        core_rule: CoreRule,
+        persona: Persona,
     ) -> str:
         current_model_content = (
             current_user_model.content if current_user_model else "No user model yet."
         )
         conversation_content = self._render_conversation(conversation)
         return (
-            "Core rule:\n"
-            f"{core_rule.content.strip()}\n\n"
+            "Agent persona:\n"
+            f"{persona.content.strip()}\n\n"
             "Current user model:\n"
             f"{current_model_content.strip()}\n\n"
             "Conversation input:\n"

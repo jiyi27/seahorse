@@ -16,6 +16,6 @@ def recall_context(service: RecallService) -> RecallContextResult:
 
     return {
         "success": True,
-        "core_rule": context.core_rule.content,
+        "persona": context.persona.content,
         "user_model": context.user_model.content if context.user_model else None,
     }

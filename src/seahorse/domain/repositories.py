@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from seahorse.domain.models import CoreRule, UserModel
+from seahorse.domain.models import Persona, UserModel
 
 
-class CoreRuleRepository(Protocol):
-    def load(self) -> CoreRule: ...
+class PersonaRepository(Protocol):
+    def load(self) -> Persona: ...
 
 
 class UserModelRepository(Protocol):

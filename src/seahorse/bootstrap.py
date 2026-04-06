@@ -48,7 +48,7 @@ def build_app_container(
     logger.info("seahorse.startup", {"project_root": str(project_root)})
     provider_settings = build_provider_settings(app_config.provider, secrets)
 
-    # The selected persona markdown file is the agent's current core rule source.
+    # The selected persona markdown file defines the agent's active persona.
     persona_repository = MarkdownPersonaRepository(paths.persona_path)
     user_model_repository = MarkdownUserModelRepository(paths.storage.user_model_path)
     provider = build_llm_provider(provider_settings)
@@ -58,11 +58,11 @@ def build_app_container(
     )
 
     recall_service = RecallService(
-        core_rule_repository=persona_repository,
+        persona_repository=persona_repository,
         user_model_repository=user_model_repository,
     )
     ingest_service = IngestService(
-        core_rule_repository=persona_repository,
+        persona_repository=persona_repository,
         user_model_repository=user_model_repository,
         extractor=extractor,
         merger=UserModelMerger(),

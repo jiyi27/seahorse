@@ -8,14 +8,14 @@ from seahorse.application.ingest_service import IngestService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.bootstrap import AppContainer
-from seahorse.domain.models import CoreRule, UserModel, UserModelPatch
+from seahorse.domain.models import Persona, UserModel, UserModelPatch
 
 
-class FakeCoreRuleRepository:
-    def __init__(self, model: CoreRule) -> None:
+class FakePersonaRepository:
+    def __init__(self, model: Persona) -> None:
         self.model = model
 
-    def load(self) -> CoreRule:
+    def load(self) -> Persona:
         return self.model
 
 
@@ -31,7 +31,7 @@ class FakeUserModelRepository:
 
 
 class FakeExtractor:
-    def extract(self, conversation, current_user_model, core_rule) -> UserModelPatch:
+    def extract(self, conversation, current_user_model, persona) -> UserModelPatch:
         return UserModelPatch(
             summary="Prefers concise answers.",
             preferences_to_add=["Concise answers"],
@@ -44,19 +44,19 @@ class FakeEpisodePipeline:
 
 
 class FailingExtractor:
-    def extract(self, conversation, current_user_model, core_rule) -> UserModelPatch:
+    def extract(self, conversation, current_user_model, persona) -> UserModelPatch:
         raise RuntimeError("Extractor exploded")
 
 
 def build_test_client() -> TestClient:
     recall_service = RecallService(
-        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(
             UserModel(content="## Summary\n\nPrefers concise answers.\n")
         ),
     )
     ingest_service = IngestService(
-        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
         extractor=FakeExtractor(),
         merger=UserModelMerger(),
@@ -86,7 +86,7 @@ def test_memory_context_endpoint_returns_stable_context() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["success"] is True
-    assert payload["core_rule"] == "Be precise."
+    assert payload["persona"] == "Be precise."
     assert "Prefers concise answers." in payload["user_model"]
 
 
@@ -111,11 +111,11 @@ def test_memory_ingest_endpoint_updates_user_model() -> None:
 
 def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
     recall_service = RecallService(
-        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
     )
     ingest_service = IngestService(
-        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
         extractor=FailingExtractor(),
         merger=UserModelMerger(),
@@ -163,11 +163,11 @@ def test_memory_ingest_endpoint_returns_structured_validation_error() -> None:
 
 def test_memory_context_endpoint_returns_null_when_user_model_missing() -> None:
     recall_service = RecallService(
-        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
     )
     ingest_service = IngestService(
-        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
         extractor=FakeExtractor(),
         merger=UserModelMerger(),
@@ -184,6 +184,6 @@ def test_memory_context_endpoint_returns_null_when_user_model_missing() -> None:
     assert response.status_code == 200
     assert response.json() == {
         "success": True,
-        "core_rule": "Be precise.",
+        "persona": "Be precise.",
         "user_model": None,
     }

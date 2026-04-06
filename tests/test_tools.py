@@ -5,17 +5,17 @@ import pytest
 from seahorse.application.ingest_service import IngestService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
-from seahorse.domain.models import CoreRule, UserModel, UserModelPatch
+from seahorse.domain.models import Persona, UserModel, UserModelPatch
 from seahorse.tools.contracts import INGEST_RETRY_HINT, RECALL_CONTEXT_UNAVAILABLE_HINT
 from seahorse.tools.ingest_turn import ingest_turn
 from seahorse.tools.recall_context import recall_context
 
 
-class FakeCoreRuleRepository:
-    def __init__(self, model: CoreRule) -> None:
+class FakePersonaRepository:
+    def __init__(self, model: Persona) -> None:
         self.model = model
 
-    def load(self) -> CoreRule:
+    def load(self) -> Persona:
         return self.model
 
 
@@ -31,7 +31,7 @@ class FakeUserModelRepository:
 
 
 class FakeExtractor:
-    def extract(self, conversation, current_user_model, core_rule) -> UserModelPatch:
+    def extract(self, conversation, current_user_model, persona) -> UserModelPatch:
         return UserModelPatch(
             summary="Prefers direct answers.",
             preferences_to_add=["Direct answers"],
@@ -43,14 +43,14 @@ class FakeEpisodePipeline:
         return None
 
 
-class FailingCoreRuleRepository:
-    def load(self) -> CoreRule:
-        raise RuntimeError("Core rule storage unavailable")
+class FailingPersonaRepository:
+    def load(self) -> Persona:
+        raise RuntimeError("Persona storage unavailable")
 
 
 def test_recall_context_returns_string_payload() -> None:
     service = RecallService(
-        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(
             UserModel(content="## Summary\n\nPrefers direct answers.\n")
         ),
@@ -59,13 +59,13 @@ def test_recall_context_returns_string_payload() -> None:
     payload = recall_context(service)
 
     assert payload["success"] is True
-    assert payload["core_rule"] == "Be precise."
+    assert payload["persona"] == "Be precise."
     assert "Prefers direct answers." in payload["user_model"]
 
 
 def test_recall_context_returns_none_when_user_model_missing() -> None:
     service = RecallService(
-        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
     )
 
@@ -73,14 +73,14 @@ def test_recall_context_returns_none_when_user_model_missing() -> None:
 
     assert payload == {
         "success": True,
-        "core_rule": "Be precise.",
+        "persona": "Be precise.",
         "user_model": None,
     }
 
 
 def test_ingest_turn_normalizes_messages_and_returns_result() -> None:
     service = IngestService(
-        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
         extractor=FakeExtractor(),
         merger=UserModelMerger(),
@@ -99,7 +99,7 @@ def test_ingest_turn_normalizes_messages_and_returns_result() -> None:
 
 def test_recall_context_returns_structured_internal_error_on_runtime_failure() -> None:
     service = RecallService(
-        core_rule_repository=FailingCoreRuleRepository(),
+        persona_repository=FailingPersonaRepository(),
         user_model_repository=FakeUserModelRepository(),
     )
 
@@ -108,14 +108,14 @@ def test_recall_context_returns_structured_internal_error_on_runtime_failure() -
     assert payload == {
         "success": False,
         "error_type": "internal_error",
-        "message": "Core rule storage unavailable",
+        "message": "Persona storage unavailable",
         "hint": RECALL_CONTEXT_UNAVAILABLE_HINT,
     }
 
 
 def test_ingest_turn_returns_structured_internal_error_on_runtime_failure() -> None:
     service = IngestService(
-        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
         extractor=FakeExtractor(),
         merger=UserModelMerger(),

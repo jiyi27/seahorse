@@ -22,7 +22,7 @@ class ToolFailure(TypedDict):
 
 class RecallContextSuccess(TypedDict):
     success: Literal[True]
-    core_rule: str
+    persona: str
     user_model: str | None
 
 

@@ -35,9 +35,9 @@ def test_persona_repository_reads_existing_persona_file(tmp_path: Path) -> None:
     path.write_text("# Core Rule\n\nBe precise.\n", encoding="utf-8")
     repository = MarkdownPersonaRepository(path)
 
-    core_rule = repository.load()
+    persona = repository.load()
 
-    assert core_rule.content == "# Core Rule\n\nBe precise."
+    assert persona.content == "# Core Rule\n\nBe precise."
 
 
 def test_user_model_repository_returns_none_when_missing(tmp_path: Path) -> None:

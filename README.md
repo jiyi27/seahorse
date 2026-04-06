@@ -45,7 +45,7 @@ The current skeleton implements Phase 1 from [docs/architecture_v2.md](/Users/da
 1. Domain models and protocols
 2. Application services for ingest and recall
 3. A deterministic user-model merger
-4. Markdown repositories for persona core rules and `user_model`
+4. Markdown repositories for persona documents and `user_model`
 5. A lightweight provider and LLM extractor boundary
 6. Bootstrap wiring for services and tool adapters
 7. MCP and HTTP transport adapters

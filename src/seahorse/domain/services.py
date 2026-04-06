@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from seahorse.domain.models import ConversationInput, CoreRule, UserModel, UserModelPatch
+from seahorse.domain.models import ConversationInput, Persona, UserModel, UserModelPatch
 
 
 class UserModelExtractor(Protocol):
@@ -10,7 +10,7 @@ class UserModelExtractor(Protocol):
         self,
         conversation: ConversationInput,
         current_user_model: UserModel | None,
-        core_rule: CoreRule,
+        persona: Persona,
     ) -> UserModelPatch: ...
 
 

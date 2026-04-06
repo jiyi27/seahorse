@@ -15,7 +15,7 @@ type MessageRole = Literal["system", "user", "assistant", "tool"]
 type ConversationSource = Literal["mcp", "http"]
 
 
-class CoreRule(BaseModel):
+class Persona(BaseModel):
     content: str
     updated_at: datetime = Field(default_factory=utc_now)
 
@@ -56,7 +56,7 @@ class UserModelPatch(BaseModel):
 
 
 class RecallContext(BaseModel):
-    core_rule: CoreRule
+    persona: Persona
     user_model: UserModel | None
 
 

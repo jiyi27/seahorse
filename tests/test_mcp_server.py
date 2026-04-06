@@ -9,18 +9,18 @@ from seahorse.application.ingest_service import IngestService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.bootstrap import AppContainer
-from seahorse.domain.models import CoreRule, UserModel, UserModelPatch
+from seahorse.domain.models import Persona, UserModel, UserModelPatch
 from seahorse.infrastructure.config import (
     DEFAULT_CONFIG_FILE_NAME,
     USER_MODEL_EXTRACTION_PROMPT_FILE_NAME,
 )
 
 
-class FakeCoreRuleRepository:
-    def __init__(self, model: CoreRule) -> None:
+class FakePersonaRepository:
+    def __init__(self, model: Persona) -> None:
         self.model = model
 
-    def load(self) -> CoreRule:
+    def load(self) -> Persona:
         return self.model
 
 
@@ -36,7 +36,7 @@ class FakeUserModelRepository:
 
 
 class FakeExtractor:
-    def extract(self, conversation, current_user_model, core_rule) -> UserModelPatch:
+    def extract(self, conversation, current_user_model, persona) -> UserModelPatch:
         return UserModelPatch(
             summary="Prefers structured answers.",
             preferences_to_add=["Structured answers"],
@@ -50,11 +50,11 @@ class FakeEpisodePipeline:
 
 def test_create_mcp_server_registers_expected_tools() -> None:
     recall_service = RecallService(
-        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
     )
     ingest_service = IngestService(
-        core_rule_repository=FakeCoreRuleRepository(CoreRule(content="Be precise.")),
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
         extractor=FakeExtractor(),
         merger=UserModelMerger(),
