@@ -82,6 +82,21 @@ def test_recall_context_returns_none_when_user_model_missing() -> None:
     }
 
 
+def test_recall_context_returns_none_when_user_model_is_empty() -> None:
+    service = RecallService(
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
+        user_model_repository=FakeUserModelRepository(UserModel()),
+    )
+
+    payload = recall_context(service, UserModelRenderer())
+
+    assert payload == {
+        "success": True,
+        "persona": "Be precise.",
+        "user_model": None,
+    }
+
+
 def test_ingest_turn_normalizes_messages_and_returns_result() -> None:
     service = IngestService(
         user_model_repository=FakeUserModelRepository(),

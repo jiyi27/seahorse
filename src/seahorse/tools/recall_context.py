@@ -18,10 +18,12 @@ def recall_context(
     except RuntimeError as exc:
         return internal_error(str(exc), RECALL_CONTEXT_UNAVAILABLE_HINT)
 
+    rendered_user_model = None
+    if context.user_model is not None:
+        rendered_user_model = renderer.render_markdown(context.user_model) or None
+
     return {
         "success": True,
         "persona": context.persona.content,
-        "user_model": (
-            renderer.render_markdown(context.user_model) if context.user_model else None
-        ),
+        "user_model": rendered_user_model,
     }

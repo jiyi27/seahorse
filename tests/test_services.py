@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from seahorse.application.ingest_service import IngestService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
@@ -128,6 +130,26 @@ def test_ingest_service_reports_no_update_for_empty_initial_patch() -> None:
     assert result.user_model_updated is False
     assert len(user_model_repo.saved) == 0
     assert episode_pipeline.calls == 1
+
+
+def test_conversation_input_normalizes_blank_content_when_messages_are_present() -> None:
+    conversation = ConversationInput(
+        source="mcp",
+        content="   ",
+        messages=[Message(role="user", text="Keep responses concise.")],
+    )
+
+    assert conversation.content is None
+    assert conversation.messages == [Message(role="user", text="Keep responses concise.")]
+
+
+def test_conversation_input_rejects_content_and_messages_together() -> None:
+    with pytest.raises(ValueError, match="either content or messages, not both"):
+        ConversationInput(
+            source="http",
+            content="Keep responses concise.",
+            messages=[Message(role="user", text="Keep responses concise.")],
+        )
 
 
 def test_merger_replaces_fact_by_id_and_keeps_category() -> None:

@@ -164,6 +164,25 @@ def test_memory_ingest_endpoint_returns_structured_validation_error() -> None:
     }
 
 
+def test_memory_ingest_endpoint_rejects_content_and_messages_together() -> None:
+    client = build_test_client()
+
+    response = client.post(
+        MEMORY_INGEST_PATH,
+        json={
+            "content": "Please be concise.",
+            "messages": [{"role": "user", "text": "Please be concise."}],
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.headers["x-request-id"]
+    assert response.json() == {
+        "error": "Invalid request payload",
+        "type": "ValidationError",
+    }
+
+
 def test_memory_context_endpoint_returns_null_when_user_model_missing() -> None:
     recall_service = RecallService(
         persona_repository=FakePersonaRepository(Persona(content="Be precise.")),

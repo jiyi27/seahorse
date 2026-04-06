@@ -20,10 +20,22 @@ class UserModelRenderer:
     _CONSTRAINTS_HEADER = "## Constraints"
 
     def render_markdown(self, user_model: UserModel) -> str:
-        parts = [self._SUMMARY_HEADER, user_model.summary.strip()]
+        parts: list[str] = []
+
+        summary = user_model.summary.strip()
+        if summary:
+            parts.extend([self._SUMMARY_HEADER, summary])
+
         parts.extend(self._render_facts_section(user_model.facts))
-        parts.extend(self._render_text_section(self._PREFERENCES_HEADER, user_model.preferences))
-        parts.extend(self._render_text_section(self._CONSTRAINTS_HEADER, user_model.constraints))
+        parts.extend(
+            self._render_text_section(self._PREFERENCES_HEADER, user_model.preferences)
+        )
+        parts.extend(
+            self._render_text_section(self._CONSTRAINTS_HEADER, user_model.constraints)
+        )
+
+        if not parts:
+            return ""
         return "\n\n".join(parts).strip() + "\n"
 
     def _render_facts_section(self, facts: list[FactItem]) -> list[str]:
@@ -33,8 +45,12 @@ class UserModelRenderer:
             if not items:
                 continue
             rendered_groups.append(f"### {title}\n" + "\n".join(f"- {item}" for item in items))
+        if not rendered_groups:
+            return []
         return [self._FACTS_HEADER, "\n\n".join(rendered_groups)]
 
     def _render_text_section(self, header: str, items: list[TextItem]) -> list[str]:
+        if not items:
+            return []
         rendered_items = "\n".join(f"- {item.text}" for item in items)
         return [header, rendered_items]

@@ -54,7 +54,16 @@ class ConversationInput(BaseModel):
 
     @model_validator(mode="after")
     def validate_payload(self) -> "ConversationInput":
-        if not self.content and not self.messages:
+        normalized_content = self.content.strip() if self.content is not None else None
+        self.content = normalized_content or None
+
+        has_content = self.content is not None
+        has_messages = bool(self.messages)
+
+        if has_content and has_messages:
+            msg = "ConversationInput accepts either content or messages, not both"
+            raise ValueError(msg)
+        if not has_content and not has_messages:
             msg = "ConversationInput requires content or at least one message"
             raise ValueError(msg)
         return self
