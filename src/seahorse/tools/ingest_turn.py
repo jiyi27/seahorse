@@ -8,6 +8,7 @@ from seahorse.domain.models import (
 )
 from seahorse.tools.contracts import (
     INGEST_RETRY_HINT,
+    IngestTurnSuccess,
     IngestTurnResult,
     ToolInputMessage,
     internal_error,
@@ -39,7 +40,8 @@ def ingest_turn(
     except RuntimeError as exc:
         return internal_error(str(exc), INGEST_RETRY_HINT)
 
-    return {
+    payload: IngestTurnSuccess = {
         "success": True,
         "user_model_updated": result.user_model_updated,
     }
+    return payload

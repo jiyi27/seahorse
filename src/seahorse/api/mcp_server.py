@@ -5,9 +5,9 @@ from pathlib import Path
 from mcp.server.fastmcp import FastMCP
 
 from seahorse.bootstrap import AppContainer, build_app_container
+from seahorse.tools.contracts import IngestTurnResult, RecallContextResult, ToolInputMessage
 from seahorse.tools.ingest_turn import ingest_turn
 from seahorse.tools.recall_context import recall_context
-from seahorse.tools.contracts import ToolInputMessage
 
 
 def create_mcp_server(container: AppContainer) -> FastMCP:
@@ -26,7 +26,7 @@ def create_mcp_server(container: AppContainer) -> FastMCP:
             "before personalizing any response."
         ),
     )
-    def recall_context_tool() -> dict[str, str | None]:
+    def recall_context_tool() -> RecallContextResult:
         return recall_context(container.recall_service, container.user_model_renderer)
 
     @server.tool(
@@ -42,7 +42,7 @@ def create_mcp_server(container: AppContainer) -> FastMCP:
         content: str | None = None,
         messages: list[ToolInputMessage] | None = None,
         session_id: str | None = None,
-    ) -> dict[str, object]:
+    ) -> IngestTurnResult:
         return ingest_turn(
             container.ingest_service,
             content=content,
