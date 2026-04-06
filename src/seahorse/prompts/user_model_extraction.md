@@ -10,7 +10,7 @@ Return JSON only. No prose. No code fences.
 
 The profile captures stable personal information the user explicitly states about themselves.
 
-`facts` can contain these categories:
+`facts` can contain these categories. Each category accepts any information of that type — the examples below are representative, not exhaustive.
 
 - `identity`: name, age, occupation, education, location
 - `personality`: self-reported traits or tendencies, including MBTI
