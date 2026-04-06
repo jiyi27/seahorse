@@ -17,12 +17,15 @@ The default [`config.yaml`](/Users/david/codes/agent/seahorse/config.yaml) cover
 
 - provider name, model, and timeout
 - log directory and log level
+- MCP tool registration
 - storage directory for user memory
 - persona directory and active persona name
 
 Secrets are not read from `.env` files. Export `OPENROUTER_API_KEY` in the shell or process environment before startup. Copy [`config.yaml.example`](/Users/david/codes/agent/seahorse/config.yaml.example) to `config.yaml` if you want to start from the documented template.
 
 `storage` is required in `config.yaml`. Seahorse now expects `data_dir`, `persona_dir`, and `persona_name` to be written explicitly so the active memory location and persona choice are always visible in the checked-in config.
+
+`mcp.enabled_tools` is optional. Use it when you want Seahorse to register only a subset of tools for a given agent. If omitted, Seahorse registers both `recall_context` and `ingest_turn`.
 
 Startup is fail-fast. Seahorse exits during bootstrap if:
 

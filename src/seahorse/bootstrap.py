@@ -32,6 +32,7 @@ class AppContainer:
     recall_service: RecallService
     ingest_service: IngestService
     user_model_renderer: UserModelRenderer
+    enabled_mcp_tools: frozenset[str]
 
 
 def build_app_container(
@@ -75,4 +76,5 @@ def build_app_container(
         recall_service=recall_service,
         ingest_service=ingest_service,
         user_model_renderer=user_model_renderer,
+        enabled_mcp_tools=frozenset(app_config.mcp.enabled_tools),
     )

@@ -25,3 +25,7 @@ storage:
   persona_dir: personas
   # Required. Loads <persona_dir>/<persona_name>.md
   persona_name: default
+
+  mcp:
+    enabled_tools:
+      - recall_context

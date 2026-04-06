@@ -9,6 +9,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
 from seahorse.constants import OPENROUTER_PROVIDER
+from seahorse.tools.tool_names import ALL_TOOL_NAMES
 
 DEFAULT_CONFIG_FILE_NAME = "config.yaml"
 DEFAULT_LOG_DIR = "logs"
@@ -17,6 +18,7 @@ DEFAULT_PROVIDER_TIMEOUT_SECONDS = 60.0
 SUPPORTED_LOG_LEVELS = frozenset({"debug", "info", "warning", "error"})
 USER_MODEL_FILE_NAME = "user_model.json"
 USER_MODEL_EXTRACTION_PROMPT_FILE_NAME = "user_model_extraction.md"
+DEFAULT_ENABLED_MCP_TOOLS = tuple(sorted(ALL_TOOL_NAMES))
 
 
 def _raise_config_error(message: str, *, cause: Exception | None = None) -> None:
@@ -116,11 +118,38 @@ class StorageConfig(BaseModel):
         return value
 
 
+class MCPConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled_tools: list[str] = list(DEFAULT_ENABLED_MCP_TOOLS)
+
+    @field_validator("enabled_tools")
+    @classmethod
+    def validate_enabled_tools(cls, value: list[str]) -> list[str]:
+        normalized_tools: list[str] = []
+        seen_tools: set[str] = set()
+        for raw_tool_name in value:
+            tool_name = raw_tool_name.strip()
+            if not tool_name:
+                raise ValueError("mcp.enabled_tools must not contain empty values")
+            if tool_name not in ALL_TOOL_NAMES:
+                valid = ", ".join(sorted(ALL_TOOL_NAMES))
+                raise ValueError(
+                    f"mcp.enabled_tools contains unsupported tool '{tool_name}'. "
+                    f"Supported tools: {valid}"
+                )
+            if tool_name not in seen_tools:
+                normalized_tools.append(tool_name)
+                seen_tools.add(tool_name)
+        return normalized_tools
+
+
 class AppConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     provider: ProviderConfig = ProviderConfig()
     logger: LoggerConfig = LoggerConfig()
+    mcp: MCPConfig = MCPConfig()
     storage: StorageConfig
 
 

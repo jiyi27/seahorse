@@ -18,6 +18,14 @@ logger:
   # Default: info
   log_level: info
 
+mcp:
+  # Optional. Controls which MCP tools are registered.
+  # Supported values: recall_context, ingest_turn
+  # Default: both tools enabled
+  enabled_tools:
+    - recall_context
+    - ingest_turn
+
 storage:
   # Required. Relative paths are resolved from the project root.
   data_dir: data

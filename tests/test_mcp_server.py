@@ -15,6 +15,7 @@ from seahorse.infrastructure.config import (
     DEFAULT_CONFIG_FILE_NAME,
     USER_MODEL_EXTRACTION_PROMPT_FILE_NAME,
 )
+from seahorse.tools.tool_names import INGEST_TURN_TOOL, RECALL_CONTEXT_TOOL
 
 
 class FakePersonaRepository:
@@ -64,6 +65,7 @@ def test_create_mcp_server_registers_expected_tools() -> None:
         recall_service=recall_service,
         ingest_service=ingest_service,
         user_model_renderer=UserModelRenderer(),
+        enabled_mcp_tools=frozenset({RECALL_CONTEXT_TOOL, INGEST_TURN_TOOL}),
     )
 
     server = create_mcp_server(container)
@@ -78,6 +80,32 @@ def test_create_mcp_server_registers_expected_tools() -> None:
     assert "start of every session" in tools["recall_context"].description
     assert "Persists new stable facts" in tools["ingest_turn"].description
     assert "end of a session" in tools["ingest_turn"].description
+
+
+def test_create_mcp_server_registers_only_enabled_tools() -> None:
+    recall_service = RecallService(
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
+        user_model_repository=FakeUserModelRepository(),
+    )
+    ingest_service = IngestService(
+        user_model_repository=FakeUserModelRepository(),
+        extractor=FakeExtractor(),
+        merger=UserModelMerger(),
+        episode_pipeline=FakeEpisodePipeline(),
+    )
+    container = AppContainer(
+        recall_service=recall_service,
+        ingest_service=ingest_service,
+        user_model_renderer=UserModelRenderer(),
+        enabled_mcp_tools=frozenset({RECALL_CONTEXT_TOOL}),
+    )
+
+    server = create_mcp_server(container)
+
+    manager = server._tool_manager  # noqa: SLF001
+    assert manager is not None
+    tool_names = {tool.name for tool in manager.list_tools()}
+    assert tool_names == {RECALL_CONTEXT_TOOL}
 
 
 def test_build_default_mcp_server_requires_provider_env(
