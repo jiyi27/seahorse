@@ -39,19 +39,19 @@ class UserModelMerger:
         content = self._render_markdown(summary, facts, preferences, constraints)
         version = 1 if current is None else current.version + 1
         user_model = UserModel(content=content, updated_at=utc_now(), version=version)
-        changed = current is None and bool(patch.summary.strip())
-        changed = changed or any(
-            item
-            for item in (
-                patch.facts_to_add
-                + patch.facts_to_remove
-                + patch.preferences_to_add
-                + patch.preferences_to_remove
-                + patch.constraints_to_add
-                + patch.constraints_to_remove
+        if current is None:
+            changed = bool(patch.summary.strip()) or any(
+                item
+                for item in (
+                    patch.facts_to_add
+                    + patch.facts_to_remove
+                    + patch.preferences_to_add
+                    + patch.preferences_to_remove
+                    + patch.constraints_to_add
+                    + patch.constraints_to_remove
+                )
             )
-        )
-        if current is not None:
+        else:
             changed = current.content != content
 
         return MergeResult(user_model=user_model, changed=changed)

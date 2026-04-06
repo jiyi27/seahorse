@@ -197,3 +197,30 @@ def test_merger_preserves_multiline_summary() -> None:
     merged = merger.merge(current, UserModelPatch())
 
     assert "## Summary\n\nFirst paragraph.\nSecond paragraph." in merged.user_model.content
+    assert merged.changed is False
+
+
+def test_merger_marks_new_empty_model_as_unchanged() -> None:
+    merger = UserModelMerger()
+
+    merged = merger.merge(None, UserModelPatch())
+
+    assert merged.changed is False
+    assert merged.user_model.version == 1
+
+
+def test_merger_marks_existing_model_unchanged_when_rendered_content_matches() -> None:
+    merger = UserModelMerger()
+    current = UserModel(
+        content=(
+            "## Summary\n\nKeeps stable preferences.\n\n"
+            "## Facts\n\n- Uses Python\n\n"
+            "## Preferences\n\n- Concise answers\n\n"
+            "## Constraints\n\n- None\n"
+        )
+    )
+
+    merged = merger.merge(current, UserModelPatch(facts_to_add=["Uses Python"]))
+
+    assert merged.changed is False
+    assert merged.user_model.content == current.content
