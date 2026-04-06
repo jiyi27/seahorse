@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Literal, TypedDict
 
 from pydantic import BaseModel, Field, model_validator
+from seahorse.constants import APP_NAME, OPENROUTER_BASE_URL, OPENROUTER_PROVIDER
 
 
 def utc_now() -> datetime:
@@ -70,10 +71,10 @@ class InputMessage(TypedDict):
 
 
 class ProviderSettings(BaseModel):
-    provider: Literal["openrouter"] = "openrouter"
+    provider: Literal["openrouter"] = OPENROUTER_PROVIDER
     model: str
     api_key: str
-    base_url: str = "https://openrouter.ai/api/v1"
+    base_url: str = OPENROUTER_BASE_URL
     timeout_seconds: float = 60.0
-    app_name: str | None = "Seahorse"
+    app_name: str | None = APP_NAME
     referer: str | None = None

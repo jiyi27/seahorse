@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fastapi.testclient import TestClient
 
+from seahorse.api.constants import HEALTH_PATH, MEMORY_CONTEXT_PATH, MEMORY_INGEST_PATH
 from seahorse.api.http_server import create_http_app
 from seahorse.application.ingest_service import IngestService
 from seahorse.application.recall_service import RecallService
@@ -71,7 +72,7 @@ def build_test_client() -> TestClient:
 def test_health_endpoint_returns_ok() -> None:
     client = build_test_client()
 
-    response = client.get("/health")
+    response = client.get(HEALTH_PATH)
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
@@ -80,7 +81,7 @@ def test_health_endpoint_returns_ok() -> None:
 def test_memory_context_endpoint_returns_stable_context() -> None:
     client = build_test_client()
 
-    response = client.get("/memory/context")
+    response = client.get(MEMORY_CONTEXT_PATH)
 
     assert response.status_code == 200
     payload = response.json()
@@ -93,7 +94,7 @@ def test_memory_ingest_endpoint_updates_user_model() -> None:
     client = build_test_client()
 
     response = client.post(
-        "/memory/ingest",
+        MEMORY_INGEST_PATH,
         json={
             "session_id": "session-1",
             "messages": [{"role": "user", "text": "Please be concise."}],
@@ -127,7 +128,7 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
     client = TestClient(create_http_app(container), raise_server_exceptions=False)
 
     response = client.post(
-        "/memory/ingest",
+        MEMORY_INGEST_PATH,
         json={
             "session_id": "session-1",
             "messages": [{"role": "user", "text": "Please be concise."}],
@@ -150,7 +151,7 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
 def test_memory_ingest_endpoint_returns_structured_validation_error() -> None:
     client = build_test_client()
 
-    response = client.post("/memory/ingest", json={})
+    response = client.post(MEMORY_INGEST_PATH, json={})
 
     assert response.status_code == 422
     assert response.headers["x-request-id"]
@@ -178,7 +179,7 @@ def test_memory_context_endpoint_returns_null_when_user_model_missing() -> None:
     )
     client = TestClient(create_http_app(container))
 
-    response = client.get("/memory/context")
+    response = client.get(MEMORY_CONTEXT_PATH)
 
     assert response.status_code == 200
     assert response.json() == {

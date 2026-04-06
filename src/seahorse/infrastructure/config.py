@@ -4,11 +4,13 @@ import os
 from dataclasses import dataclass
 from pathlib import Path
 
+from seahorse.constants import APP_NAME, OPENROUTER_BASE_URL, OPENROUTER_PROVIDER
 from seahorse.domain.models import ProviderSettings
 
-_DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 _DEFAULT_PROVIDER_TIMEOUT_SECONDS = 60.0
-_DEFAULT_APP_NAME = "Seahorse"
+CORE_RULE_FILE_NAME = "core_rule.md"
+USER_MODEL_FILE_NAME = "user_model.md"
+USER_MODEL_EXTRACTION_PROMPT_FILE_NAME = "user_model_extraction.md"
 
 
 @dataclass(frozen=True)
@@ -22,8 +24,8 @@ class StoragePaths:
         data_dir = project_root / "data"
         return cls(
             data_dir=data_dir,
-            core_rule_path=data_dir / "core_rule.md",
-            user_model_path=data_dir / "user_model.md",
+            core_rule_path=data_dir / CORE_RULE_FILE_NAME,
+            user_model_path=data_dir / USER_MODEL_FILE_NAME,
         )
 
 
@@ -32,13 +34,18 @@ class AppPaths:
     project_root: Path
     storage: StoragePaths
     prompt_dir: Path
+    user_model_extraction_prompt_path: Path
 
     @classmethod
     def from_project_root(cls, project_root: Path) -> "AppPaths":
+        prompt_dir = project_root / "src" / "seahorse" / "prompts"
         return cls(
             project_root=project_root,
             storage=StoragePaths.from_project_root(project_root),
-            prompt_dir=project_root / "src" / "seahorse" / "prompts",
+            prompt_dir=prompt_dir,
+            user_model_extraction_prompt_path=(
+                prompt_dir / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
+            ),
         )
 
 
@@ -64,11 +71,11 @@ def load_provider_settings_from_env() -> ProviderSettings:
         raise RuntimeError("Missing required environment variable: SEAHORSE_MODEL")
 
     return ProviderSettings(
-        provider="openrouter",
+        provider=OPENROUTER_PROVIDER,
         model=model,
         api_key=api_key,
-        base_url=_DEFAULT_OPENROUTER_BASE_URL,
+        base_url=OPENROUTER_BASE_URL,
         timeout_seconds=_DEFAULT_PROVIDER_TIMEOUT_SECONDS,
-        app_name=_DEFAULT_APP_NAME,
+        app_name=APP_NAME,
         referer=None,
     )

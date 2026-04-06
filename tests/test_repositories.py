@@ -4,7 +4,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from seahorse.domain.models import UserModel
-from seahorse.infrastructure.config import StoragePaths
+from seahorse.infrastructure.config import (
+    CORE_RULE_FILE_NAME,
+    USER_MODEL_FILE_NAME,
+    StoragePaths,
+)
 from seahorse.infrastructure.repositories.core_rule_markdown import (
     DEFAULT_CORE_RULE_CONTENT,
     MarkdownCoreRuleRepository,
@@ -18,14 +22,14 @@ def test_storage_paths_build_from_project_root(tmp_path: Path) -> None:
     paths = StoragePaths.from_project_root(tmp_path)
 
     assert paths.data_dir == tmp_path / "data"
-    assert paths.core_rule_path == tmp_path / "data" / "core_rule.md"
-    assert paths.user_model_path == tmp_path / "data" / "user_model.md"
+    assert paths.core_rule_path == tmp_path / "data" / CORE_RULE_FILE_NAME
+    assert paths.user_model_path == tmp_path / "data" / USER_MODEL_FILE_NAME
 
 
 def test_core_rule_repository_initializes_default_file_when_missing(
     tmp_path: Path,
 ) -> None:
-    path = tmp_path / "data" / "core_rule.md"
+    path = tmp_path / "data" / CORE_RULE_FILE_NAME
     repository = MarkdownCoreRuleRepository(path)
 
     core_rule = repository.load()
@@ -36,13 +40,13 @@ def test_core_rule_repository_initializes_default_file_when_missing(
 
 
 def test_user_model_repository_returns_none_when_missing(tmp_path: Path) -> None:
-    repository = MarkdownUserModelRepository(tmp_path / "data" / "user_model.md")
+    repository = MarkdownUserModelRepository(tmp_path / "data" / USER_MODEL_FILE_NAME)
 
     assert repository.load() is None
 
 
 def test_user_model_repository_saves_and_loads_markdown(tmp_path: Path) -> None:
-    path = tmp_path / "data" / "user_model.md"
+    path = tmp_path / "data" / USER_MODEL_FILE_NAME
     repository = MarkdownUserModelRepository(path)
     updated_at = datetime(2026, 4, 5, 10, 30, tzinfo=timezone.utc)
     model = UserModel(
@@ -69,7 +73,7 @@ def test_user_model_repository_saves_and_loads_markdown(tmp_path: Path) -> None:
 def test_user_model_repository_loads_legacy_metadata_without_updated_at(
     tmp_path: Path,
 ) -> None:
-    path = tmp_path / "data" / "user_model.md"
+    path = tmp_path / "data" / USER_MODEL_FILE_NAME
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(
         "<!-- seahorse:user-model version:2 -->\n"

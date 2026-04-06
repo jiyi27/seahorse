@@ -9,7 +9,9 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
 from seahorse import logger
+from seahorse.api.constants import HEALTH_PATH, MEMORY_CONTEXT_PATH, MEMORY_INGEST_PATH
 from seahorse.bootstrap import AppContainer, build_app_container
+from seahorse.constants import APP_NAME
 from seahorse.domain.models import MessageRole
 from seahorse.tools.contracts import IngestTurnResult, RecallContextResult, ToolFailure
 from seahorse.tools.ingest_turn import ingest_turn
@@ -38,7 +40,7 @@ def _http_tool_response(payload: RecallContextResult | IngestTurnResult) -> JSON
 
 
 def create_http_app(container: AppContainer) -> FastAPI:
-    app = FastAPI(title="Seahorse", version="0.1.0")
+    app = FastAPI(title=APP_NAME, version="0.1.0")
 
     @app.middleware("http")
     async def attach_context_id(request: Request, call_next):
@@ -107,15 +109,15 @@ def create_http_app(container: AppContainer) -> FastAPI:
             content={"error": "Internal server error", "type": type(exc).__name__},
         )
 
-    @app.get("/health")
+    @app.get(HEALTH_PATH)
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
-    @app.get("/memory/context")
+    @app.get(MEMORY_CONTEXT_PATH)
     def get_memory_context() -> JSONResponse:
         return _http_tool_response(recall_context(container.recall_service))
 
-    @app.post("/memory/ingest")
+    @app.post(MEMORY_INGEST_PATH)
     def post_memory_ingest(request: IngestRequest) -> JSONResponse:
         return _http_tool_response(
             ingest_turn(

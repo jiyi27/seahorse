@@ -46,7 +46,7 @@ def build_app_container(project_root: Path) -> AppContainer:
     provider = build_llm_provider(provider_settings)
     extractor = LLMUserModelExtractor(
         provider=provider,
-        prompt_path=paths.prompt_dir / "user_model_extraction.md",
+        prompt_path=paths.user_model_extraction_prompt_path,
     )
 
     recall_service = RecallService(

@@ -5,7 +5,9 @@ from pathlib import Path
 import httpx
 import pytest
 
+from seahorse.constants import OPENROUTER_BASE_URL
 from seahorse.domain.models import ConversationInput, CoreRule, Message, ProviderSettings, UserModel
+from seahorse.infrastructure.config import USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
 from seahorse.infrastructure.extractors.llm_user_model_extractor import (
     LLMUserModelExtractor,
 )
@@ -28,7 +30,7 @@ class FakeProvider(LLMProvider):
 
 
 def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Path) -> None:
-    prompt_path = tmp_path / "user_model_extraction.md"
+    prompt_path = tmp_path / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
     prompt_path.write_text("Extract stable user information.", encoding="utf-8")
     provider = FakeProvider(
         (
@@ -61,7 +63,7 @@ def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Pa
 
 
 def test_llm_user_model_extractor_rejects_invalid_json(tmp_path: Path) -> None:
-    prompt_path = tmp_path / "user_model_extraction.md"
+    prompt_path = tmp_path / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
     prompt_path.write_text("Extract stable user information.", encoding="utf-8")
     provider = FakeProvider("not-json")
     extractor = LLMUserModelExtractor(provider=provider, prompt_path=prompt_path)
@@ -110,7 +112,7 @@ def test_openrouter_provider_formats_request_and_reads_response() -> None:
     response = provider.complete(system_prompt="system", user_prompt="user")
 
     assert response == '{"summary":"Stable user preference"}'
-    assert captured["url"] == "https://openrouter.ai/api/v1/chat/completions"
+    assert captured["url"] == f"{OPENROUTER_BASE_URL}/chat/completions"
     assert captured["authorization"] == "Bearer test-key"
     assert captured["title"] == "Seahorse Tests"
     assert '"model":"openai/gpt-4.1-mini"' in str(captured["payload"])
