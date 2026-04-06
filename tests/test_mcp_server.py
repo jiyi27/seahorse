@@ -69,7 +69,9 @@ def test_create_mcp_server_registers_expected_tools() -> None:
     tool_names = set(tools)
     assert "recall_context" in tool_names
     assert "ingest_turn" in tool_names
+    assert "Returns the user's persistent memory context" in tools["recall_context"].description
     assert "start of every session" in tools["recall_context"].description
+    assert "Persists new stable facts" in tools["ingest_turn"].description
     assert "end of a session" in tools["ingest_turn"].description
 
 

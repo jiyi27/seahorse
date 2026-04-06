@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field, ValidationError
 from seahorse import logger
 from seahorse.bootstrap import AppContainer, build_app_container
 from seahorse.domain.models import MessageRole
+from seahorse.tools.contracts import IngestTurnResult, RecallContextResult, ToolFailure
 from seahorse.tools.ingest_turn import ingest_turn
 from seahorse.tools.recall_context import recall_context
 
@@ -24,6 +25,16 @@ class IngestRequest(BaseModel):
     session_id: str | None = None
     content: str | None = None
     messages: list[HTTPMessage] = Field(default_factory=list)
+
+
+def _error_response(payload: ToolFailure) -> JSONResponse:
+    return JSONResponse(status_code=500, content=payload)
+
+
+def _http_tool_response(payload: RecallContextResult | IngestTurnResult) -> JSONResponse:
+    if payload["success"]:
+        return JSONResponse(status_code=200, content=payload)
+    return _error_response(payload)
 
 
 def create_http_app(container: AppContainer) -> FastAPI:
@@ -101,17 +112,19 @@ def create_http_app(container: AppContainer) -> FastAPI:
         return {"status": "ok"}
 
     @app.get("/memory/context")
-    def get_memory_context() -> dict[str, str | None]:
-        return recall_context(container.recall_service)
+    def get_memory_context() -> JSONResponse:
+        return _http_tool_response(recall_context(container.recall_service))
 
     @app.post("/memory/ingest")
-    def post_memory_ingest(request: IngestRequest) -> dict[str, object]:
-        return ingest_turn(
-            container.ingest_service,
-            content=request.content,
-            messages=[message.model_dump() for message in request.messages],
-            source="http",
-            session_id=request.session_id,
+    def post_memory_ingest(request: IngestRequest) -> JSONResponse:
+        return _http_tool_response(
+            ingest_turn(
+                container.ingest_service,
+                content=request.content,
+                messages=[message.model_dump() for message in request.messages],
+                source="http",
+                session_id=request.session_id,
+            )
         )
 
     return app

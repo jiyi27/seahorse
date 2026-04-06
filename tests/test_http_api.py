@@ -84,6 +84,7 @@ def test_memory_context_endpoint_returns_stable_context() -> None:
 
     assert response.status_code == 200
     payload = response.json()
+    assert payload["success"] is True
     assert payload["core_rule"] == "Be precise."
     assert "Prefers concise answers." in payload["user_model"]
 
@@ -101,9 +102,10 @@ def test_memory_ingest_endpoint_updates_user_model() -> None:
 
     assert response.status_code == 200
     payload = response.json()
+    assert payload["success"] is True
     assert payload["user_model_updated"] is True
     assert payload["version"] == 1
-    assert "Concise answers" in payload["user_model"]
+    assert "user_model" not in payload
 
 
 def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
@@ -135,8 +137,13 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
     assert response.status_code == 500
     assert response.headers["x-request-id"]
     assert response.json() == {
-        "error": "Extractor exploded",
-        "type": "RuntimeError",
+        "success": False,
+        "error_type": "internal_error",
+        "message": "Extractor exploded",
+        "hint": (
+            "An internal error occurred. Retry up to 2 times; if still failing, "
+            "stop and notify the user with the message above."
+        ),
     }
 
 
@@ -175,6 +182,7 @@ def test_memory_context_endpoint_returns_null_when_user_model_missing() -> None:
 
     assert response.status_code == 200
     assert response.json() == {
+        "success": True,
         "core_rule": "Be precise.",
         "user_model": None,
     }

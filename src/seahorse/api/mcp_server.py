@@ -21,9 +21,9 @@ def create_mcp_server(container: AppContainer) -> FastMCP:
     @server.tool(
         name="recall_context",
         description=(
-            "Call at the start of every session to load the user's persistent "
-            "memory context, including behavioral rules and accumulated profile. "
-            "Use this before personalizing a response."
+            "Returns the user's persistent memory context, including behavioral "
+            "rules and accumulated profile. Call at the start of every session "
+            "before personalizing any response."
         ),
     )
     def recall_context_tool() -> dict[str, str | None]:
@@ -32,9 +32,10 @@ def create_mcp_server(container: AppContainer) -> FastMCP:
     @server.tool(
         name="ingest_turn",
         description=(
-            "Call at the end of a session or after a significant exchange to persist "
-            "new stable facts, preferences, or constraints learned about the user. "
-            "Do not call this for one-off requests that imply no durable preference."
+            "Persists new stable facts, preferences, or constraints learned about "
+            "the user into long-term memory. Call at the end of a session or after "
+            "a significant exchange. Do not call for one-off requests that imply "
+            "no durable preference."
         ),
     )
     def ingest_turn_tool(

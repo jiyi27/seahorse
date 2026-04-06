@@ -7,6 +7,7 @@ from seahorse.domain.models import (
     InputMessage,
     Message,
 )
+from seahorse.tools.contracts import INGEST_RETRY_HINT, IngestTurnResult, internal_error
 
 
 def ingest_turn(
@@ -16,7 +17,7 @@ def ingest_turn(
     messages: list[InputMessage] | None = None,
     source: ConversationSource = "mcp",
     session_id: str | None = None,
-) -> dict[str, object]:
+) -> IngestTurnResult:
     normalized_messages = [
         Message(role=message["role"], text=message["text"])
         for message in (messages or [])
@@ -27,9 +28,13 @@ def ingest_turn(
         messages=normalized_messages,
         session_id=session_id,
     )
-    result = service.ingest(conversation)
+    try:
+        result = service.ingest(conversation)
+    except RuntimeError as exc:
+        return internal_error(str(exc), INGEST_RETRY_HINT)
+
     return {
+        "success": True,
         "user_model_updated": result.user_model_updated,
-        "user_model": result.user_model.content,
         "version": result.user_model.version,
     }
