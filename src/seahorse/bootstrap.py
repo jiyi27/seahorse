@@ -16,7 +16,7 @@ from seahorse.infrastructure.episodes.noop_episode_pipeline import NoopEpisodePi
 from seahorse.infrastructure.extractors.llm_user_model_extractor import (
     LLMUserModelExtractor,
 )
-from seahorse.infrastructure.providers.openrouter import OpenRouterProvider
+from seahorse.infrastructure.providers.factory import build_llm_provider
 from seahorse.infrastructure.repositories.core_rule_markdown import (
     MarkdownCoreRuleRepository,
 )
@@ -43,7 +43,7 @@ def build_app_container(project_root: Path) -> AppContainer:
 
     core_rule_repository = MarkdownCoreRuleRepository(paths.storage.core_rule_path)
     user_model_repository = MarkdownUserModelRepository(paths.storage.user_model_path)
-    provider  = OpenRouterProvider(provider_settings)
+    provider = build_llm_provider(provider_settings)
     extractor = LLMUserModelExtractor(
         provider=provider,
         prompt_path=paths.prompt_dir / "user_model_extraction.md",

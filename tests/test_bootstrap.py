@@ -3,11 +3,14 @@ from __future__ import annotations
 from pathlib import Path
 
 from seahorse.bootstrap import build_app_container
+from seahorse.domain.models import ProviderSettings
 from seahorse.infrastructure.config import (
     AppPaths,
     load_logger_settings_from_env,
     load_provider_settings_from_env,
 )
+from seahorse.infrastructure.providers.factory import build_llm_provider
+from seahorse.infrastructure.providers.openrouter import OpenRouterProvider
 
 
 def test_load_provider_settings_from_env(monkeypatch) -> None:
@@ -57,3 +60,15 @@ def test_build_app_container_wires_services(monkeypatch, tmp_path: Path) -> None
 
     assert container.recall_service is not None
     assert container.ingest_service is not None
+
+
+def test_build_llm_provider_uses_configured_provider() -> None:
+    provider = build_llm_provider(
+        ProviderSettings(
+            provider="openrouter",
+            model="openai/gpt-4.1-mini",
+            api_key="test-key",
+        )
+    )
+
+    assert isinstance(provider, OpenRouterProvider)
