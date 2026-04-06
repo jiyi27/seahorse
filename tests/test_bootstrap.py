@@ -107,7 +107,7 @@ def test_app_paths_resolve_expected_locations(tmp_path: Path) -> None:
         == paths.prompt_dir / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
     )
     assert paths.persona_dir == tmp_path / "personas"
-    assert paths.core_rule_path == tmp_path / "personas" / "analyst.md"
+    assert paths.persona_path == tmp_path / "personas" / "analyst.md"
 
 
 def test_validate_app_paths_rejects_missing_persona_file(tmp_path: Path) -> None:

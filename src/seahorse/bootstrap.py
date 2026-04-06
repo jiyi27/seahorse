@@ -20,9 +20,7 @@ from seahorse.infrastructure.extractors.llm_user_model_extractor import (
 )
 from seahorse.infrastructure.providers.config import build_provider_settings
 from seahorse.infrastructure.providers.factory import build_llm_provider
-from seahorse.infrastructure.repositories.core_rule_markdown import (
-    MarkdownCoreRuleRepository,
-)
+from seahorse.infrastructure.repositories.persona_markdown import MarkdownPersonaRepository
 from seahorse.infrastructure.repositories.user_model_markdown import (
     MarkdownUserModelRepository,
 )
@@ -50,7 +48,8 @@ def build_app_container(
     logger.info("seahorse.startup", {"project_root": str(project_root)})
     provider_settings = build_provider_settings(app_config.provider, secrets)
 
-    core_rule_repository = MarkdownCoreRuleRepository(paths.core_rule_path)
+    # The selected persona markdown file is the agent's current core rule source.
+    persona_repository = MarkdownPersonaRepository(paths.persona_path)
     user_model_repository = MarkdownUserModelRepository(paths.storage.user_model_path)
     provider = build_llm_provider(provider_settings)
     extractor = LLMUserModelExtractor(
@@ -59,11 +58,11 @@ def build_app_container(
     )
 
     recall_service = RecallService(
-        core_rule_repository=core_rule_repository,
+        core_rule_repository=persona_repository,
         user_model_repository=user_model_repository,
     )
     ingest_service = IngestService(
-        core_rule_repository=core_rule_repository,
+        core_rule_repository=persona_repository,
         user_model_repository=user_model_repository,
         extractor=extractor,
         merger=UserModelMerger(),

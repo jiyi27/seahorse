@@ -150,7 +150,7 @@ class AppPaths:
     prompt_dir: Path
     user_model_extraction_prompt_path: Path
     persona_dir: Path
-    core_rule_path: Path
+    persona_path: Path
 
     @classmethod
     def from_config(cls, project_root: Path, app_config: AppConfig) -> "AppPaths":
@@ -165,7 +165,7 @@ class AppPaths:
                 prompt_dir / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
             ),
             persona_dir=persona_dir,
-            core_rule_path=persona_dir / f"{app_config.storage.persona_name}.md",
+            persona_path=persona_dir / f"{app_config.storage.persona_name}.md",
         )
 
 
@@ -211,8 +211,8 @@ def validate_app_paths(paths: AppPaths) -> None:
             "Missing required prompt file: "
             f"{paths.user_model_extraction_prompt_path}"
         )
-    if not paths.core_rule_path.exists():
+    if not paths.persona_path.exists():
         _raise_config_error(
             "Missing configured persona file: "
-            f"{paths.core_rule_path}"
+            f"{paths.persona_path}"
         )

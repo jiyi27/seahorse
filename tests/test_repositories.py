@@ -5,9 +5,7 @@ from pathlib import Path
 
 from seahorse.domain.models import UserModel
 from seahorse.infrastructure.config import AppConfig, StoragePaths, USER_MODEL_FILE_NAME
-from seahorse.infrastructure.repositories.core_rule_markdown import (
-    MarkdownCoreRuleRepository,
-)
+from seahorse.infrastructure.repositories.persona_markdown import MarkdownPersonaRepository
 from seahorse.infrastructure.repositories.user_model_markdown import (
     MarkdownUserModelRepository,
 )
@@ -31,11 +29,11 @@ def test_storage_paths_build_from_config(tmp_path: Path) -> None:
     assert paths.user_model_path == tmp_path / "memory-data" / USER_MODEL_FILE_NAME
 
 
-def test_core_rule_repository_reads_existing_persona_file(tmp_path: Path) -> None:
+def test_persona_repository_reads_existing_persona_file(tmp_path: Path) -> None:
     path = tmp_path / "personas" / "default.md"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("# Core Rule\n\nBe precise.\n", encoding="utf-8")
-    repository = MarkdownCoreRuleRepository(path)
+    repository = MarkdownPersonaRepository(path)
 
     core_rule = repository.load()
 
