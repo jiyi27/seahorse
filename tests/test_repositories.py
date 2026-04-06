@@ -4,13 +4,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from seahorse.domain.models import UserModel
-from seahorse.infrastructure.config import (
-    CORE_RULE_FILE_NAME,
-    USER_MODEL_FILE_NAME,
-    StoragePaths,
-)
+from seahorse.infrastructure.config import AppConfig, StoragePaths, USER_MODEL_FILE_NAME
 from seahorse.infrastructure.repositories.core_rule_markdown import (
-    DEFAULT_CORE_RULE_CONTENT,
     MarkdownCoreRuleRepository,
 )
 from seahorse.infrastructure.repositories.user_model_markdown import (
@@ -18,25 +13,33 @@ from seahorse.infrastructure.repositories.user_model_markdown import (
 )
 
 
-def test_storage_paths_build_from_project_root(tmp_path: Path) -> None:
-    paths = StoragePaths.from_project_root(tmp_path)
+def test_storage_paths_build_from_config(tmp_path: Path) -> None:
+    paths = StoragePaths.from_config(
+        tmp_path,
+        AppConfig.model_validate(
+            {
+                "storage": {
+                    "data_dir": "memory-data",
+                    "persona_dir": "personas",
+                    "persona_name": "default",
+                }
+            }
+        ).storage,
+    )
 
-    assert paths.data_dir == tmp_path / "data"
-    assert paths.core_rule_path == tmp_path / "data" / CORE_RULE_FILE_NAME
-    assert paths.user_model_path == tmp_path / "data" / USER_MODEL_FILE_NAME
+    assert paths.data_dir == tmp_path / "memory-data"
+    assert paths.user_model_path == tmp_path / "memory-data" / USER_MODEL_FILE_NAME
 
 
-def test_core_rule_repository_initializes_default_file_when_missing(
-    tmp_path: Path,
-) -> None:
-    path = tmp_path / "data" / CORE_RULE_FILE_NAME
+def test_core_rule_repository_reads_existing_persona_file(tmp_path: Path) -> None:
+    path = tmp_path / "personas" / "default.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("# Core Rule\n\nBe precise.\n", encoding="utf-8")
     repository = MarkdownCoreRuleRepository(path)
 
     core_rule = repository.load()
 
-    assert path.exists()
-    assert core_rule.content == DEFAULT_CORE_RULE_CONTENT.strip()
-    assert path.read_text(encoding="utf-8") == DEFAULT_CORE_RULE_CONTENT.strip() + "\n"
+    assert core_rule.content == "# Core Rule\n\nBe precise."
 
 
 def test_user_model_repository_returns_none_when_missing(tmp_path: Path) -> None:

@@ -9,13 +9,16 @@ from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.infrastructure.config import (
     AppPaths,
-    load_logger_settings_from_env,
-    load_provider_settings_from_env,
+    DEFAULT_CONFIG_FILE_NAME,
+    load_app_config_from_yaml,
+    load_secrets_from_env,
+    validate_app_paths,
 )
 from seahorse.infrastructure.episodes.noop_episode_pipeline import NoopEpisodePipeline
 from seahorse.infrastructure.extractors.llm_user_model_extractor import (
     LLMUserModelExtractor,
 )
+from seahorse.infrastructure.providers.config import build_provider_settings
 from seahorse.infrastructure.providers.factory import build_llm_provider
 from seahorse.infrastructure.repositories.core_rule_markdown import (
     MarkdownCoreRuleRepository,
@@ -31,17 +34,23 @@ class AppContainer:
     ingest_service: IngestService
 
 
-def build_app_container(project_root: Path) -> AppContainer:
-    paths = AppPaths.from_project_root(project_root)
-    logger_settings = load_logger_settings_from_env()
-    log_dir = Path(logger_settings.log_dir)
+def build_app_container(
+    project_root: Path, config_path: Path | None = None
+) -> AppContainer:
+    resolved_config_path = config_path or project_root / DEFAULT_CONFIG_FILE_NAME
+    app_config = load_app_config_from_yaml(resolved_config_path)
+    secrets = load_secrets_from_env()
+    paths = AppPaths.from_config(project_root, app_config)
+    validate_app_paths(paths)
+
+    log_dir = Path(app_config.logger.log_dir)
     if not log_dir.is_absolute():
         log_dir = project_root / log_dir
-    logger.configure(log_dir=log_dir, level=logger_settings.log_level)
+    logger.configure(log_dir=log_dir, level=app_config.logger.log_level)
     logger.info("seahorse.startup", {"project_root": str(project_root)})
-    provider_settings = load_provider_settings_from_env()
+    provider_settings = build_provider_settings(app_config.provider, secrets)
 
-    core_rule_repository = MarkdownCoreRuleRepository(paths.storage.core_rule_path)
+    core_rule_repository = MarkdownCoreRuleRepository(paths.core_rule_path)
     user_model_repository = MarkdownUserModelRepository(paths.storage.user_model_path)
     provider = build_llm_provider(provider_settings)
     extractor = LLMUserModelExtractor(

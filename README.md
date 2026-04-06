@@ -4,26 +4,48 @@ Seahorse is a single-user memory service for agent systems.
 
 ## Configuration
 
-Copy `.env.example` to `.env` and set at least:
+Seahorse uses two configuration sources:
+
+- `config.yaml` in the project root for non-secret application settings
+- environment variables for secrets only
+
+Required environment variables:
 
 - `OPENROUTER_API_KEY`
-- `SEAHORSE_MODEL`
 
-Optional settings:
+The default [`config.yaml`](/Users/david/codes/agent/seahorse/config.yaml) covers:
 
-- `SEAHORSE_LOG_DIR`
-- `SEAHORSE_LOG_LEVEL`
+- provider name, model, and timeout
+- log directory and log level
+- storage directory for user memory
+- persona directory and active persona name
 
-The current implementation is wired to OpenRouter. The API base URL, request
-timeout, and attribution headers are internal defaults rather than user-facing
-configuration.
+Secrets are not read from `.env` files. Export `OPENROUTER_API_KEY` in the shell or process environment before startup. Copy [`config.yaml.example`](/Users/david/codes/agent/seahorse/config.yaml.example) to `config.yaml` if you want to start from the documented template.
+
+`storage` is required in `config.yaml`. Seahorse now expects `data_dir`, `persona_dir`, and `persona_name` to be written explicitly so the active memory location and persona choice are always visible in the checked-in config.
+
+Startup is fail-fast. Seahorse exits during bootstrap if:
+
+- `OPENROUTER_API_KEY` is missing
+- the configured provider requires fields that are not set
+- the configured persona markdown file does not exist
+- the prompt file is missing
+- the YAML structure or field values are invalid
+
+## Personas
+
+Persona documents live under [`personas/`](/Users/david/codes/agent/seahorse/personas). The active persona is selected by `storage.persona_name` in `config.yaml`, which resolves to `<persona_dir>/<persona_name>.md`.
+
+This keeps static agent personality documents separate from mutable user memory in `storage.data_dir`.
+
+## Current Scope
 
 The current skeleton implements Phase 1 from [docs/architecture_v2.md](/Users/david/codes/agent/seahorse/docs/architecture_v2.md):
 
 1. Domain models and protocols
 2. Application services for ingest and recall
 3. A deterministic user-model merger
-4. Markdown repositories for `core_rule` and `user_model`
+4. Markdown repositories for persona core rules and `user_model`
 5. A lightweight provider and LLM extractor boundary
 6. Bootstrap wiring for services and tool adapters
 7. MCP and HTTP transport adapters

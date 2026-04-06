@@ -10,6 +10,10 @@ from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.bootstrap import AppContainer
 from seahorse.domain.models import CoreRule, UserModel, UserModelPatch
+from seahorse.infrastructure.config import (
+    DEFAULT_CONFIG_FILE_NAME,
+    USER_MODEL_EXTRACTION_PROMPT_FILE_NAME,
+)
 
 
 class FakeCoreRuleRepository:
@@ -79,7 +83,27 @@ def test_build_default_mcp_server_requires_provider_env(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-    monkeypatch.delenv("SEAHORSE_MODEL", raising=False)
+
+    prompt_dir = tmp_path / "src" / "seahorse" / "prompts"
+    prompt_dir.mkdir(parents=True)
+    (prompt_dir / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME).write_text(
+        "Return JSON.",
+        encoding="utf-8",
+    )
+    persona_dir = tmp_path / "personas"
+    persona_dir.mkdir(parents=True)
+    (persona_dir / "default.md").write_text("# Core Rule\n\nBe precise.\n", encoding="utf-8")
+    (tmp_path / DEFAULT_CONFIG_FILE_NAME).write_text(
+        (
+            "provider:\n"
+            "  model: openai/gpt-4.1-mini\n"
+            "storage:\n"
+            "  data_dir: data\n"
+            "  persona_dir: personas\n"
+            "  persona_name: default\n"
+        ),
+        encoding="utf-8",
+    )
 
     with pytest.raises(RuntimeError, match="OPENROUTER_API_KEY"):
         build_default_mcp_server(tmp_path)
