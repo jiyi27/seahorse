@@ -57,35 +57,3 @@ def test_user_model_repository_saves_and_loads_json(tmp_path: Path) -> None:
 
     assert path.exists()
     assert loaded == model
-
-
-def test_user_model_repository_loads_legacy_markdown_when_json_missing(
-    tmp_path: Path,
-) -> None:
-    path = tmp_path / "data" / USER_MODEL_FILE_NAME
-    legacy_path = path.with_suffix(".md")
-    legacy_path.parent.mkdir(parents=True, exist_ok=True)
-    legacy_path.write_text(
-        "<!-- seahorse:user-model version:2 updated_at:2026-04-05T10:30:00+00:00 -->\n"
-        "## Summary\n\nPrefers concise answers.\n\n"
-        "## Facts\n\n"
-        "- [Identity] Uses Python\n"
-        "- [Personality] INTJ\n\n"
-        "## Preferences\n\n- Concise answers\n\n"
-        "## Constraints\n\n- None\n",
-        encoding="utf-8",
-    )
-    repository = JSONUserModelRepository(path)
-
-    loaded = repository.load()
-
-    assert loaded is not None
-    assert loaded.summary == "Prefers concise answers."
-    assert loaded.facts == [
-        FactItem(id="fact_001", category="identity", text="Uses Python"),
-        FactItem(id="fact_002", category="personality", text="INTJ"),
-    ]
-    assert loaded.preferences == [
-        TextItem(id="preference_001", text="Concise answers")
-    ]
-    assert loaded.constraints == []

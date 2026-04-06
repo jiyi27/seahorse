@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, TypedDict
+from typing import Literal
 
 from pydantic import BaseModel, Field, model_validator
 from seahorse.constants import APP_NAME, OPENROUTER_BASE_URL, OPENROUTER_PROVIDER
@@ -92,11 +92,6 @@ class RecallContext(BaseModel):
 class IngestResult(BaseModel):
     user_model: UserModel
     user_model_updated: bool
-
-
-class InputMessage(TypedDict):
-    role: MessageRole
-    text: str
 
 
 class ProviderSettings(BaseModel):

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Literal, TypedDict
 
+from seahorse.domain.models import MessageRole
+
 type ToolErrorType = Literal["internal_error"]
 
 INGEST_RETRY_HINT = (
@@ -29,6 +31,11 @@ class RecallContextSuccess(TypedDict):
 class IngestTurnSuccess(TypedDict):
     success: Literal[True]
     user_model_updated: bool
+
+
+class ToolInputMessage(TypedDict):
+    role: MessageRole
+    text: str
 
 
 type RecallContextResult = RecallContextSuccess | ToolFailure

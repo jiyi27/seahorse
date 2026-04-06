@@ -12,21 +12,15 @@ from seahorse import logger
 from seahorse.api.constants import HEALTH_PATH, MEMORY_CONTEXT_PATH, MEMORY_INGEST_PATH
 from seahorse.bootstrap import AppContainer, build_app_container
 from seahorse.constants import APP_NAME
-from seahorse.domain.models import MessageRole
+from seahorse.domain.models import Message
 from seahorse.tools.contracts import IngestTurnResult, RecallContextResult, ToolFailure
 from seahorse.tools.ingest_turn import ingest_turn
 from seahorse.tools.recall_context import recall_context
 
-
-class HTTPMessage(BaseModel):
-    role: MessageRole
-    text: str
-
-
 class IngestRequest(BaseModel):
     session_id: str | None = None
     content: str | None = None
-    messages: list[HTTPMessage] = Field(default_factory=list)
+    messages: list[Message] = Field(default_factory=list)
 
 
 def _error_response(payload: ToolFailure) -> JSONResponse:
@@ -125,7 +119,7 @@ def create_http_app(container: AppContainer) -> FastAPI:
             ingest_turn(
                 container.ingest_service,
                 content=request.content,
-                messages=[message.model_dump() for message in request.messages],
+                messages=request.messages,
                 source="http",
                 session_id=request.session_id,
             )

@@ -4,22 +4,28 @@ from seahorse.application.ingest_service import IngestService
 from seahorse.domain.models import (
     ConversationInput,
     ConversationSource,
-    InputMessage,
     Message,
 )
-from seahorse.tools.contracts import INGEST_RETRY_HINT, IngestTurnResult, internal_error
+from seahorse.tools.contracts import (
+    INGEST_RETRY_HINT,
+    IngestTurnResult,
+    ToolInputMessage,
+    internal_error,
+)
 
 
 def ingest_turn(
     service: IngestService,
     *,
     content: str | None = None,
-    messages: list[InputMessage] | None = None,
+    messages: list[Message | ToolInputMessage] | None = None,
     source: ConversationSource = "mcp",
     session_id: str | None = None,
 ) -> IngestTurnResult:
     normalized_messages = [
-        Message(role=message["role"], text=message["text"])
+        message
+        if isinstance(message, Message)
+        else Message(role=message["role"], text=message["text"])
         for message in (messages or [])
     ]
     conversation = ConversationInput(

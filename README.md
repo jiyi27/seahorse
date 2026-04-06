@@ -39,7 +39,6 @@ Persona documents live under [`personas/`](/Users/david/codes/agent/seahorse/per
 This keeps static agent personality documents separate from mutable user memory in `storage.data_dir`.
 
 The persisted user model is stored as structured JSON in `storage.data_dir/user_model.json`.
-If an older `user_model.md` file is present and the JSON file is missing, Seahorse can still read the legacy markdown format.
 
 ## Current Scope
 
