@@ -33,10 +33,9 @@ This file is written for coding agents working in this repository. Follow these 
 
 ## Config
 
-- Required env vars: `OPENROUTER_API_KEY`.
-- Keep configuration minimal. Prefer code defaults over adding new env vars unless there is a real operational need.
-- Keep retrieval tuning in config, not in agent-facing tool parameters.
-- If config or storage behavior changes, update `config.yaml.example` and `README.md`.
+- Validate all configuration, paths, and secrets eagerly in `build_app_container()` before any service is constructed. A missing file or bad value must fail at startup with a clear error, never silently at request time.
+- Prefer explicit values in `config.yaml` over code defaults for anything that affects operational behavior. Code defaults are acceptable only for genuinely optional or low-stakes settings.
+- Keep each config section as its own Pydantic model with its own field validators. Do not merge unrelated config into one model.
 
 ## Testing
 
