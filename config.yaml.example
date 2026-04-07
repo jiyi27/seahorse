@@ -29,7 +29,9 @@ mcp:
 storage:
   # Required. Relative paths are resolved from the project root.
   data_dir: data
+
+persona:
   # Required. Relative paths are resolved from the project root.
-  persona_dir: personas
-  # Required. Loads <persona_dir>/<persona_name>.md
-  persona_name: default
+  dir: personas
+  # Required. Loads <dir>/<name>.md
+  name: default

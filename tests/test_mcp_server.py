@@ -128,8 +128,9 @@ def test_build_default_mcp_server_requires_provider_env(
             "  model: openai/gpt-4.1-mini\n"
             "storage:\n"
             "  data_dir: data\n"
-            "  persona_dir: personas\n"
-            "  persona_name: default\n"
+            "persona:\n"
+            "  dir: personas\n"
+            "  name: default\n"
         ),
         encoding="utf-8",
     )

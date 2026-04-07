@@ -97,23 +97,36 @@ class StorageConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     data_dir: str
-    persona_dir: str
-    persona_name: str
 
-    @field_validator("data_dir", "persona_dir", "persona_name")
+    @field_validator("data_dir")
     @classmethod
     def validate_non_empty(cls, value: str) -> str:
         normalized = value.strip()
         if not normalized:
-            raise ValueError("storage values must not be empty")
+            raise ValueError("storage.data_dir must not be empty")
         return normalized
 
-    @field_validator("persona_name")
+
+class PersonaConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    dir: str
+    name: str
+
+    @field_validator("dir", "name")
+    @classmethod
+    def validate_non_empty(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("persona values must not be empty")
+        return normalized
+
+    @field_validator("name")
     @classmethod
     def validate_persona_name(cls, value: str) -> str:
         if Path(value).name != value or value.endswith(".md"):
             raise ValueError(
-                "storage.persona_name must be a bare persona name without path segments"
+                "persona.name must be a bare persona name without path segments"
             )
         return value
 
@@ -151,6 +164,7 @@ class AppConfig(BaseModel):
     logger: LoggerConfig = LoggerConfig()
     mcp: MCPConfig = MCPConfig()
     storage: StorageConfig
+    persona: PersonaConfig
 
 
 @dataclass(frozen=True)
@@ -185,7 +199,7 @@ class AppPaths:
     def from_config(cls, project_root: Path, app_config: AppConfig) -> "AppPaths":
         prompt_dir = project_root / "src" / "seahorse" / "prompts"
         storage_paths = StoragePaths.from_config(project_root, app_config.storage)
-        persona_dir = _resolve_project_path(project_root, app_config.storage.persona_dir)
+        persona_dir = _resolve_project_path(project_root, app_config.persona.dir)
         return cls(
             project_root=project_root,
             storage=storage_paths,
@@ -194,7 +208,7 @@ class AppPaths:
                 prompt_dir / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
             ),
             persona_dir=persona_dir,
-            persona_path=persona_dir / f"{app_config.storage.persona_name}.md",
+            persona_path=persona_dir / f"{app_config.persona.name}.md",
         )
 
 

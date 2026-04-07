@@ -15,9 +15,11 @@ def test_storage_paths_build_from_config(tmp_path: Path) -> None:
             {
                 "storage": {
                     "data_dir": "memory-data",
-                    "persona_dir": "personas",
-                    "persona_name": "default",
-                }
+                },
+                "persona": {
+                    "dir": "personas",
+                    "name": "default",
+                },
             }
         ).storage,
     )

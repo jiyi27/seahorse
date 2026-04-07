@@ -23,7 +23,7 @@ The default [`config.yaml`](/Users/david/codes/agent/seahorse/config.yaml) cover
 
 Secrets are not read from `.env` files. Export `OPENROUTER_API_KEY` in the shell or process environment before startup. Copy [`config.yaml.example`](/Users/david/codes/agent/seahorse/config.yaml.example) to `config.yaml` if you want to start from the documented template.
 
-`storage` is required in `config.yaml`. Seahorse now expects `data_dir`, `persona_dir`, and `persona_name` to be written explicitly so the active memory location and persona choice are always visible in the checked-in config.
+`storage` and `persona` are required in `config.yaml`. Seahorse expects `storage.data_dir` and `persona.dir` / `persona.name` to be written explicitly so the memory location and active persona choice are always visible in the checked-in config.
 
 `mcp.enabled_tools` is optional. Use it when you want Seahorse to register only a subset of tools for a given agent. If omitted, Seahorse registers both `recall_context` and `ingest_turn`.
 
@@ -37,7 +37,7 @@ Startup is fail-fast. Seahorse exits during bootstrap if:
 
 ## Personas
 
-Persona documents live under [`personas/`](/Users/david/codes/agent/seahorse/personas). The active persona is selected by `storage.persona_name` in `config.yaml`, which resolves to `<persona_dir>/<persona_name>.md`.
+Persona documents live under [`personas/`](/Users/david/codes/agent/seahorse/personas). The active persona is selected by `persona.name` in `config.yaml`, which resolves to `<persona.dir>/<persona.name>.md`.
 
 This keeps static agent personality documents separate from mutable user memory in `storage.data_dir`.
 

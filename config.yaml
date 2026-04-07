@@ -2,29 +2,21 @@
 # Before startup, export OPENROUTER_API_KEY in the shell environment.
 
 provider:
-  # Supported values: openrouter
-  # Default: openrouter
   name: openrouter
-  # Required for openrouter.
   model: google/gemini-3.1-flash-lite-preview
-  # Default: 60.0
   timeout_seconds: 60.0
 
 logger:
-  # Relative paths are resolved from the project root.
-  # Default: logs
   log_dir: logs
-  # Supported values: debug, info, warning, error
-  # Default: info
   log_level: debug
 
 storage:
-  # Required. Relative paths are resolved from the project root.
   data_dir: data
-  # Required. Relative paths are resolved from the project root.
-  persona_dir: personas
-  # Required. Loads <persona_dir>/<persona_name>.md
-  persona_name: default
+
+persona:
+  dir: personas
+  # Required. Loads <dir>/<name>.md
+  name: default
 
 mcp:
   enabled_tools:
