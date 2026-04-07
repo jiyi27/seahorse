@@ -17,38 +17,32 @@ This file is written for coding agents working in this repository. Follow these 
 - `tests/`: regression and wiring tests.
 - `docs/tool-design.md`: current checked-in design reference.
 
-## Rules
-
-- Preserve the layer boundaries. Do not put business logic in `api/` or provider details in `domain/`.
-- Keep failures concise and actionable.
-
-## Coding Style
-
-- Use `snake_case` for variables, functions, and modules; use `PascalCase` for classes.
-- If the same string, number, metadata field, or structural assumption appears in more than one place, extract it to a shared constant, `Enum`, helper, or schema definition before writing the second use.
-- Keep prompt text, hint text, and other reusable long strings in one clear location rather than scattering them across multiple files.
-- Config schema values must be accepted exactly; undocumented aliases are forbidden.
-- Keep functions focused. Do not mix unrelated responsibilities in one function when that would make the code harder to extend, test, or reuse.
-- Comments should explain intent or constraints, not restate obvious code behavior.
-
 ## Config
 
 - Validate all configuration, paths, and secrets eagerly in `build_app_container()` before any service is constructed. A missing file or bad value must fail at startup with a clear error, never silently at request time.
 - Prefer explicit values in `config.yaml` over code defaults for anything that affects operational behavior. Code defaults are acceptable only for genuinely optional or low-stakes settings.
 - Keep each config section as its own Pydantic model with its own field validators. Do not merge unrelated config into one model.
 
+## Coding Style
+
+- If the same string, number, metadata field, or structural assumption appears in more than one place, extract it to a shared constant, `Enum`, helper, or schema definition before writing the second use.
+- Keep prompt text, hint text, and other reusable long strings in one clear location rather than scattering them across multiple files.
+- Config schema values must be accepted exactly; undocumented aliases are forbidden.
+- Keep functions focused. Do not mix unrelated responsibilities in one function when that would make the code harder to extend, test, or reuse.
+- Comments should explain intent or constraints, not restate obvious code behavior.
+
 ## Testing
 
-- Mock provider calls in tests. Never hit real external services.
+- Write unit tests for pure logic with meaningful branching or edge cases.
+- Use integration or wiring tests when the risk is config loading, service composition, repository behavior, or API/MCP adapters.
 - Add regression tests when changing merge logic, prompt parsing, config loading, or storage format.
-- Useful commands: `uv sync`, `uv run pytest`, `uv run seahorse-mcp`, `uv run seahorse-http`.
+- Check `pyproject.toml` or `Makefile` for available commands.
 
 ## Final Phase
 
-- End each task with verification.
-- Choose verification based on risk and prefer the lightest check that proves the change works.
-- Do not add unit tests for every function.
-- Write unit tests for core pure logic and code with meaningful branching or edge cases.
-- Prefer integration or wiring tests when the main risk is config loading, service composition, repositories, or API/MCP adapter behavior.
-- If no automated test fits, do a small manual verification step and report it clearly.
-- Include a suggested commit message in the final response.
+- After completing a task, verify it works. Run existing tests to confirm no regressions and no layer boundaries are broken.
+- Do not add new tests by default. First check if existing tests already cover the changed behavior. Only add tests when the change is high-risk — core logic, complex branching, or merge/parse behavior, etc.
+- If code changed, include a suggested commit message:
+  - Format: `<type>: <summary>` or `<type>(<scope>): <summary>`
+  - Common types: `feat`, `fix`, `refactor`, `test`, `docs`, `chore`
+  - Short, specific, and lowercase.
