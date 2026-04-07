@@ -38,8 +38,8 @@ def create_mcp_server(container: AppContainer) -> FastMCP:
             name=GET_PERSONA_TOOL,
             description=(
                 "Returns your persona - who you are, how you speak, and what you "
-                "value. Call once at the start of a session, before responding to "
-                "the user."
+                "value. Call only if you do not already have this in your current "
+                "context."
             ),
         )
         def get_persona_tool() -> GetPersonaResult:
@@ -50,9 +50,9 @@ def create_mcp_server(container: AppContainer) -> FastMCP:
             name=GET_USER_PROFILE_TOOL,
             description=(
                 "Returns what is known about the user: their background, preferences, "
-                "and constraints. Call when you need context about the user to "
-                "personalize a response. For retrieving specific past events or "
-                "details, use search_memory instead."
+                "and constraints. Call only if you do not already have this in your "
+                "current context. For retrieving specific past events or details, "
+                f"use {SEARCH_MEMORY_TOOL} instead."
             ),
         )
         def get_user_profile_tool() -> GetUserProfileResult:

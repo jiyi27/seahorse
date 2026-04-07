@@ -17,6 +17,7 @@ from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.application.user_model_renderer import UserModelRenderer
 from seahorse.bootstrap import AppContainer
 from seahorse.domain.models import FactItem, Persona, TextItem, UserModel, UserModelPatch
+from seahorse.tools.tool_hints import PERSONA_SUCCESS_HINT, USER_PROFILE_SUCCESS_HINT
 from seahorse.tools.tool_names import GET_PERSONA_TOOL, GET_USER_PROFILE_TOOL, INGEST_TURN_TOOL, SEARCH_MEMORY_TOOL
 
 
@@ -118,6 +119,7 @@ def test_persona_endpoint_returns_persona() -> None:
     assert response.json() == {
         "success": True,
         "content": "Be precise.",
+        "hint": PERSONA_SUCCESS_HINT,
     }
 
 
@@ -131,6 +133,7 @@ def test_user_profile_endpoint_returns_structured_profile() -> None:
     assert payload["success"] is True
     assert payload["profile"]["summary"] == "Prefers concise answers."
     assert payload["profile"]["preferences"][0]["text"] == "Concise answers"
+    assert payload["hint"] == USER_PROFILE_SUCCESS_HINT
 
 
 def test_memory_search_endpoint_returns_matches() -> None:

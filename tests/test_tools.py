@@ -13,11 +13,13 @@ from seahorse.tools.ingest_turn import ingest_turn
 from seahorse.tools.search_memory import search_memory
 from seahorse.tools.tool_hints import (
     INGEST_RETRY_HINT,
+    PERSONA_SUCCESS_HINT,
     PERSONA_UNAVAILABLE_HINT,
     SEARCH_MEMORY_FAILED_HINT,
     SEARCH_MEMORY_HAS_RESULTS_HINT,
     SEARCH_MEMORY_NO_RESULTS_HINT,
     USER_PROFILE_EMPTY_HINT,
+    USER_PROFILE_SUCCESS_HINT,
     USER_PROFILE_UNAVAILABLE_HINT,
 )
 
@@ -93,6 +95,7 @@ def test_get_persona_returns_content() -> None:
     assert payload == {
         "success": True,
         "content": "Be precise.",
+        "hint": PERSONA_SUCCESS_HINT,
     }
 
 
@@ -128,6 +131,7 @@ def test_get_user_profile_returns_structured_profile() -> None:
                 }
             ],
         },
+        "hint": USER_PROFILE_SUCCESS_HINT,
     }
 
 

@@ -17,6 +17,7 @@ class ToolFailure(TypedDict):
 class GetPersonaSuccess(TypedDict):
     success: Literal[True]
     content: str
+    hint: str
 
 
 class UserProfileFactItem(TypedDict):

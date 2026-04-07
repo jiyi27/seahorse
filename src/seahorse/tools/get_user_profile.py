@@ -10,6 +10,7 @@ from seahorse.tools.contracts import (
 )
 from seahorse.tools.tool_hints import (
     USER_PROFILE_EMPTY_HINT,
+    USER_PROFILE_SUCCESS_HINT,
     USER_PROFILE_UNAVAILABLE_HINT,
 )
 
@@ -28,9 +29,10 @@ def get_user_profile(service: RecallService) -> GetUserProfileResult:
         }
         return payload
 
-    payload = {
+    payload: GetUserProfileSuccess = {
         "success": True,
         "profile": _serialize_user_model(user_model),
+        "hint": USER_PROFILE_SUCCESS_HINT,
     }
     return payload
 

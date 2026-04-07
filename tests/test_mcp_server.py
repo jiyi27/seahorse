@@ -96,9 +96,11 @@ def test_create_mcp_server_registers_expected_tools() -> None:
         INGEST_TURN_TOOL,
     }
     assert "Returns your persona" in tools[GET_PERSONA_TOOL].description
-    assert "Call once at the start of a session" in tools[GET_PERSONA_TOOL].description
+    assert "Call only if you do not already have this in your current context" in tools[
+        GET_PERSONA_TOOL
+    ].description
     assert "Returns what is known about the user" in tools[GET_USER_PROFILE_TOOL].description
-    assert "use search_memory instead" in tools[GET_USER_PROFILE_TOOL].description
+    assert f"use {SEARCH_MEMORY_TOOL} instead" in tools[GET_USER_PROFILE_TOOL].description
     assert "Searches past memory" in tools[SEARCH_MEMORY_TOOL].description
     assert "Provide a short natural-language query" in tools[SEARCH_MEMORY_TOOL].description
     assert "Persists new stable facts" in tools[INGEST_TURN_TOOL].description
