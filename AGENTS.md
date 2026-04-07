@@ -41,7 +41,7 @@ This file is written for coding agents working in this repository. Follow these 
 
 ## Config
 
-- Required env vars: `OPENROUTER_API_KEY`, `SEAHORSE_MODEL`.
+- Required env vars: `OPENROUTER_API_KEY`.
 - Keep configuration minimal. Prefer code defaults over adding new env vars unless there is a real operational need.
 - If config or storage behavior changes, update `config.yaml.example` and `README.md`.
 
@@ -49,7 +49,7 @@ This file is written for coding agents working in this repository. Follow these 
 
 - Mock provider calls in tests. Never hit real external services.
 - Add regression tests when changing merge logic, prompt parsing, config loading, or storage format.
-- Useful commands: `uv sync`, `uv run pytest`, `uv run seahorse`.
+- Useful commands: `uv sync`, `uv run pytest`, `uv run seahorse-mcp`, `uv run seahorse-http`.
 
 ## Final Phase
 

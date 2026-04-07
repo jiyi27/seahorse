@@ -3,9 +3,6 @@ name = "seahorse"
 version = "0.1.0"
 description = "Single-user memory service for agent context recall and profile extraction"
 readme = "README.md"
-authors = [
-    { name = "David", email = "david@surfin.sg" }
-]
 requires-python = ">=3.12"
 dependencies = [
     "fastapi>=0.135.3",
@@ -16,7 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
-seahorse = "seahorse:main"
+seahorse-mcp = "seahorse.mcp_main:main"
 seahorse-http = "seahorse.http_main:main"
 
 [build-system]

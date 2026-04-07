@@ -64,5 +64,10 @@ The repository includes a small `Makefile` for common workflows:
 
 - `make sync` installs dependencies with `uv`
 - `make test` runs the test suite
-- `make run` starts the HTTP server on `127.0.0.1:8000`
+- `make run` starts the HTTP server on `127.0.0.1:8081`
 - `make run-mcp` starts the Seahorse MCP server over stdio for manual debugging
+
+You can also run the packaged entrypoints directly:
+
+- `uv run seahorse-http` starts the HTTP server on `127.0.0.1:8081`
+- `uv run seahorse-mcp` starts the MCP server over stdio

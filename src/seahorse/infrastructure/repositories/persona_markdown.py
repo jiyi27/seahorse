@@ -10,6 +10,6 @@ class MarkdownPersonaRepository:
         self._path = path
 
     def load(self) -> Persona:
-        # Persona markdown is the configured source of the agent's behavior.
+        # Persona Markdown is the configured source of the agent's behavior.
         content = self._path.read_text(encoding="utf-8").strip()
         return Persona(content=content)
