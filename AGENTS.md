@@ -27,7 +27,6 @@ This file is written for coding agents working in this repository. Follow these 
 
 - If the same string, number, metadata field, or structural assumption appears in more than one place, extract it to a shared constant, `Enum`, helper, or schema definition before writing the second use.
 - Keep prompt text, hint text, and other reusable long strings in one clear location rather than scattering them across multiple files.
-- Config schema values must be accepted exactly; undocumented aliases are forbidden.
 - Keep functions focused. Do not mix unrelated responsibilities in one function when that would make the code harder to extend, test, or reuse.
 - Comments should explain intent or constraints, not restate obvious code behavior.
 
