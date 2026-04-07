@@ -5,20 +5,24 @@ from seahorse.domain.models import MemorySearchResultItem, UserModel
 from seahorse.domain.repositories import UserModelRepository
 
 DEFAULT_TOP_K = 3
-MAX_TOP_K = 10
 
 
 class MemorySearchService:
-    def __init__(self, user_model_repository: UserModelRepository) -> None:
+    def __init__(
+        self,
+        user_model_repository: UserModelRepository,
+        *,
+        top_k: int = DEFAULT_TOP_K,
+    ) -> None:
         self._user_model_repository = user_model_repository
+        self._top_k = top_k
 
-    def search(self, query: str, *, top_k: int = DEFAULT_TOP_K) -> list[MemorySearchResultItem]:
+    def search(self, query: str) -> list[MemorySearchResultItem]:
         normalized_query = query.strip().lower()
-        bounded_top_k = max(1, min(top_k, MAX_TOP_K))
 
         logger.debug(
             "memory_search.started",
-            {"query_len": len(normalized_query), "top_k": bounded_top_k},
+            {"query_len": len(normalized_query), "top_k": self._top_k},
         )
 
         if not normalized_query:
@@ -30,7 +34,7 @@ class MemorySearchService:
             logger.debug("memory_search.completed", {"result_count": 0})
             return []
 
-        results = _search_user_model(user_model, normalized_query, bounded_top_k)
+        results = _search_user_model(user_model, normalized_query, self._top_k)
         logger.debug("memory_search.completed", {"result_count": len(results)})
         return results
 

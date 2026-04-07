@@ -15,6 +15,7 @@ DEFAULT_CONFIG_FILE_NAME = "config.yaml"
 DEFAULT_LOG_DIR = "logs"
 DEFAULT_LOG_LEVEL = "info"
 DEFAULT_PROVIDER_TIMEOUT_SECONDS = 60.0
+DEFAULT_MEMORY_SEARCH_TOP_K = 3
 SUPPORTED_LOG_LEVELS = frozenset({"debug", "info", "warning", "error"})
 USER_MODEL_FILE_NAME = "user_model.json"
 USER_MODEL_EXTRACTION_PROMPT_FILE_NAME = "user_model_extraction.md"
@@ -157,12 +158,26 @@ class MCPConfig(BaseModel):
         return normalized_tools
 
 
+class MemorySearchConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    top_k: int = DEFAULT_MEMORY_SEARCH_TOP_K
+
+    @field_validator("top_k")
+    @classmethod
+    def validate_top_k(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("memory_search.top_k must be greater than 0")
+        return value
+
+
 class AppConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     provider: ProviderConfig = ProviderConfig()
     logger: LoggerConfig = LoggerConfig()
     mcp: MCPConfig = MCPConfig()
+    memory_search: MemorySearchConfig = MemorySearchConfig()
     storage: StorageConfig
     persona: PersonaConfig
 

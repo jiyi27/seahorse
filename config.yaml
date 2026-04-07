@@ -23,3 +23,6 @@ mcp:
     - get_persona
     - get_user_profile
     - search_memory
+
+memory_search:
+  top_k: 3

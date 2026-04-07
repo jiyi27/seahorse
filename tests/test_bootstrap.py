@@ -14,6 +14,7 @@ from seahorse.infrastructure.config import (
     DEFAULT_ENABLED_MCP_TOOLS,
     DEFAULT_LOG_DIR,
     DEFAULT_LOG_LEVEL,
+    DEFAULT_MEMORY_SEARCH_TOP_K,
     SecretSettings,
     USER_MODEL_EXTRACTION_PROMPT_FILE_NAME,
     USER_MODEL_FILE_NAME,
@@ -91,6 +92,7 @@ def test_load_app_config_from_yaml_applies_defaults_with_explicit_storage(
     assert config.logger.log_dir == DEFAULT_LOG_DIR
     assert config.logger.log_level == DEFAULT_LOG_LEVEL
     assert config.mcp.enabled_tools == list(DEFAULT_ENABLED_MCP_TOOLS)
+    assert config.memory_search.top_k == DEFAULT_MEMORY_SEARCH_TOP_K
     assert config.storage.data_dir == "data"
     assert config.persona.dir == "personas"
     assert config.persona.name == "default"
@@ -113,6 +115,27 @@ def test_load_app_config_from_yaml_rejects_unsupported_mcp_tool(tmp_path: Path) 
     )
 
     with pytest.raises(RuntimeError, match="unsupported tool"):
+        load_app_config_from_yaml(config_path)
+
+
+def test_load_app_config_from_yaml_rejects_invalid_memory_search_top_k(
+    tmp_path: Path,
+) -> None:
+    config_path = tmp_path / DEFAULT_CONFIG_FILE_NAME
+    config_path.write_text(
+        (
+            "memory_search:\n"
+            "  top_k: 0\n"
+            "storage:\n"
+            "  data_dir: data\n"
+            "persona:\n"
+            "  dir: personas\n"
+            "  name: default\n"
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(RuntimeError, match="memory_search.top_k"):
         load_app_config_from_yaml(config_path)
 
 
@@ -236,6 +259,7 @@ def test_build_app_container_wires_services(
     container = build_app_container(tmp_path)
 
     assert container.recall_service is not None
+    assert container.memory_search_service is not None
     assert container.ingest_service is not None
     assert container.enabled_mcp_tools == frozenset(DEFAULT_ENABLED_MCP_TOOLS)
 

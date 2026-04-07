@@ -20,13 +20,7 @@ This file is written for coding agents working in this repository. Follow these 
 ## Rules
 
 - Preserve the layer boundaries. Do not put business logic in `api/` or provider details in `domain/`.
-- Read env vars only in `src/seahorse/infrastructure/config.py`.
-- `UserModelExtractor` owns prompt assembly and provider calls.
-- `UserModelMerger` owns merge policy.
-- `UserModelRenderer` owns markdown rendering for external recall output.
-- `IngestService` and `RecallService` are the orchestration boundary.
 - Keep failures concise and actionable.
-- Do not overwrite unrelated local changes.
 
 ## Coding Style
 
@@ -43,6 +37,7 @@ This file is written for coding agents working in this repository. Follow these 
 
 - Required env vars: `OPENROUTER_API_KEY`.
 - Keep configuration minimal. Prefer code defaults over adding new env vars unless there is a real operational need.
+- Keep retrieval tuning in config, not in agent-facing tool parameters.
 - If config or storage behavior changes, update `config.yaml.example` and `README.md`.
 
 ## Testing

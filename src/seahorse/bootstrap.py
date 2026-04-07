@@ -68,7 +68,8 @@ def build_app_container(
         user_model_repository=user_model_repository,
     )
     memory_search_service = MemorySearchService(
-        user_model_repository=user_model_repository
+        user_model_repository=user_model_repository,
+        top_k=app_config.memory_search.top_k,
     )
     ingest_service = IngestService(
         user_model_repository=user_model_repository,

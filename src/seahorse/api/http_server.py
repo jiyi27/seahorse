@@ -136,13 +136,11 @@ def create_http_app(container: AppContainer) -> FastAPI:
     @app.get(MEMORY_SEARCH_PATH)
     def get_memory_search(
         query: Annotated[str, Query(min_length=1)],
-        top_k: Annotated[int, Query(ge=1, le=10)] = 3,
     ) -> JSONResponse:
         return _http_tool_response(
             search_memory(
                 container.memory_search_service,
                 query=query,
-                top_k=top_k,
             )
         )
 

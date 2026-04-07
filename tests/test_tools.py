@@ -7,7 +7,11 @@ from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.domain.models import FactItem, Persona, TextItem, UserModel, UserModelPatch
-from seahorse.tools.contracts import (
+from seahorse.tools.get_persona import get_persona
+from seahorse.tools.get_user_profile import get_user_profile
+from seahorse.tools.ingest_turn import ingest_turn
+from seahorse.tools.search_memory import search_memory
+from seahorse.tools.tool_hints import (
     INGEST_RETRY_HINT,
     PERSONA_UNAVAILABLE_HINT,
     SEARCH_MEMORY_FAILED_HINT,
@@ -16,10 +20,6 @@ from seahorse.tools.contracts import (
     USER_PROFILE_EMPTY_HINT,
     USER_PROFILE_UNAVAILABLE_HINT,
 )
-from seahorse.tools.get_persona import get_persona
-from seahorse.tools.get_user_profile import get_user_profile
-from seahorse.tools.ingest_turn import ingest_turn
-from seahorse.tools.search_memory import search_memory
 
 
 class FakePersonaRepository:
@@ -149,7 +149,7 @@ def test_get_user_profile_returns_null_when_user_model_missing() -> None:
 def test_search_memory_returns_matching_results() -> None:
     service = MemorySearchService(FakeUserModelRepository(build_user_model()))
 
-    payload = search_memory(service, query="rushed", top_k=3)
+    payload = search_memory(service, query="rushed")
 
     assert payload == {
         "success": True,
@@ -167,7 +167,7 @@ def test_search_memory_returns_matching_results() -> None:
 def test_search_memory_returns_empty_results_when_not_found() -> None:
     service = MemorySearchService(FakeUserModelRepository(build_user_model()))
 
-    payload = search_memory(service, query="travel", top_k=3)
+    payload = search_memory(service, query="travel")
 
     assert payload == {
         "success": True,
@@ -184,9 +184,9 @@ def test_search_memory_applies_top_k_limit() -> None:
         ],
         preferences=[TextItem(id="preference_001", text="Night walks")],
     )
-    service = MemorySearchService(FakeUserModelRepository(user_model))
+    service = MemorySearchService(FakeUserModelRepository(user_model), top_k=2)
 
-    payload = search_memory(service, query="night", top_k=2)
+    payload = search_memory(service, query="night")
 
     assert payload["success"] is True
     assert len(payload["results"]) == 2

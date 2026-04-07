@@ -6,7 +6,6 @@ from typing import Annotated
 from mcp.server.fastmcp import FastMCP
 
 from seahorse.bootstrap import AppContainer, build_app_container
-from seahorse.application.memory_search_service import MAX_TOP_K, DEFAULT_TOP_K
 from seahorse.tools.contracts import (
     GetPersonaResult,
     GetUserProfileResult,
@@ -65,18 +64,16 @@ def create_mcp_server(container: AppContainer) -> FastMCP:
             description=(
                 "Searches past memory for context that might be relevant to what the "
                 "user just said. Provide a short natural-language query describing "
-                "what you're trying to recall. Returns up to top_k results - treat "
-                "them as leads, not confirmed facts."
+                "what you're trying to recall. Returns a small configured set of "
+                "results - treat them as leads, not confirmed facts."
             ),
         )
         def search_memory_tool(
             query: Annotated[str, "Short natural-language recall query"],
-            top_k: Annotated[int, f"Maximum results to return, default {DEFAULT_TOP_K}, max {MAX_TOP_K}"] = DEFAULT_TOP_K,
         ) -> SearchMemoryResult:
             return search_memory(
                 container.memory_search_service,
                 query=query,
-                top_k=top_k,
             )
 
     if INGEST_TURN_TOOL in container.enabled_mcp_tools:

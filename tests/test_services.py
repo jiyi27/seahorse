@@ -88,7 +88,7 @@ def test_memory_search_service_returns_matching_items() -> None:
     )
 
     service = MemorySearchService(user_model_repo)
-    results = service.search("python", top_k=3)
+    results = service.search("python")
 
     assert [result.model_dump() for result in results] == [
         {

@@ -136,7 +136,7 @@ def test_user_profile_endpoint_returns_structured_profile() -> None:
 def test_memory_search_endpoint_returns_matches() -> None:
     client = build_test_client()
 
-    response = client.get(MEMORY_SEARCH_PATH, params={"query": "night", "top_k": 3})
+    response = client.get(MEMORY_SEARCH_PATH, params={"query": "night"})
 
     assert response.status_code == 200
     assert response.json() == {

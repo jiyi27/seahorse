@@ -7,12 +7,12 @@ from seahorse.domain.models import (
     Message,
 )
 from seahorse.tools.contracts import (
-    INGEST_RETRY_HINT,
     IngestTurnSuccess,
     IngestTurnResult,
     ToolInputMessage,
     internal_error,
 )
+from seahorse.tools.tool_hints import INGEST_RETRY_HINT
 
 
 def ingest_turn(

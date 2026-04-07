@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 from seahorse.application.memory_search_service import MemorySearchService
-from seahorse.tools.contracts import (
+from seahorse.tools.contracts import SearchMemoryResult, SearchMemorySuccess, internal_error
+from seahorse.tools.tool_hints import (
     SEARCH_MEMORY_FAILED_HINT,
     SEARCH_MEMORY_HAS_RESULTS_HINT,
     SEARCH_MEMORY_NO_RESULTS_HINT,
-    SearchMemoryResult,
-    SearchMemorySuccess,
-    internal_error,
 )
 
 
@@ -15,10 +13,9 @@ def search_memory(
     service: MemorySearchService,
     *,
     query: str,
-    top_k: int = 3,
 ) -> SearchMemoryResult:
     try:
-        results = service.search(query, top_k=top_k)
+        results = service.search(query)
     except RuntimeError as exc:
         return internal_error(str(exc), SEARCH_MEMORY_FAILED_HINT)
 

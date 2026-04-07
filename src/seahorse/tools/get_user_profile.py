@@ -5,10 +5,12 @@ from seahorse.domain.models import UserModel
 from seahorse.tools.contracts import (
     GetUserProfileResult,
     GetUserProfileSuccess,
-    USER_PROFILE_EMPTY_HINT,
-    USER_PROFILE_UNAVAILABLE_HINT,
     UserProfilePayload,
     internal_error,
+)
+from seahorse.tools.tool_hints import (
+    USER_PROFILE_EMPTY_HINT,
+    USER_PROFILE_UNAVAILABLE_HINT,
 )
 
 
