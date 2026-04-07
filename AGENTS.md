@@ -30,8 +30,6 @@ This file is written for coding agents working in this repository. Follow these 
 - Config schema values must be accepted exactly; undocumented aliases are forbidden.
 - Keep functions focused. Do not mix unrelated responsibilities in one function when that would make the code harder to extend, test, or reuse.
 - Comments should explain intent or constraints, not restate obvious code behavior.
-- Persist the user model as structured JSON. Do not make markdown the source of truth for merge logic.
-- Store fact categories as structured fields, not as text prefixes like `[Identity]`.
 
 ## Config
 

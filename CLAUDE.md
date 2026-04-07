@@ -20,13 +20,7 @@ This file is written for coding agents working in this repository. Follow these 
 ## Rules
 
 - Preserve the layer boundaries. Do not put business logic in `api/` or provider details in `domain/`.
-- Read env vars only in `src/seahorse/infrastructure/config.py`.
-- `UserModelExtractor` owns prompt assembly and provider calls.
-- `UserModelMerger` owns merge policy.
-- `UserModelRenderer` owns markdown rendering for external recall output.
-- `IngestService` and `RecallService` are the orchestration boundary.
 - Keep failures concise and actionable.
-- Do not overwrite unrelated local changes.
 
 ## Coding Style
 
@@ -36,20 +30,19 @@ This file is written for coding agents working in this repository. Follow these 
 - Config schema values must be accepted exactly; undocumented aliases are forbidden.
 - Keep functions focused. Do not mix unrelated responsibilities in one function when that would make the code harder to extend, test, or reuse.
 - Comments should explain intent or constraints, not restate obvious code behavior.
-- Persist the user model as structured JSON. Do not make markdown the source of truth for merge logic.
-- Store fact categories as structured fields, not as text prefixes like `[Identity]`.
 
 ## Config
 
-- Required env vars: `OPENROUTER_API_KEY`, `SEAHORSE_MODEL`.
+- Required env vars: `OPENROUTER_API_KEY`.
 - Keep configuration minimal. Prefer code defaults over adding new env vars unless there is a real operational need.
+- Keep retrieval tuning in config, not in agent-facing tool parameters.
 - If config or storage behavior changes, update `config.yaml.example` and `README.md`.
 
 ## Testing
 
 - Mock provider calls in tests. Never hit real external services.
 - Add regression tests when changing merge logic, prompt parsing, config loading, or storage format.
-- Useful commands: `uv sync`, `uv run pytest`, `uv run seahorse`.
+- Useful commands: `uv sync`, `uv run pytest`, `uv run seahorse-mcp`, `uv run seahorse-http`.
 
 ## Final Phase
 
