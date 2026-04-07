@@ -16,7 +16,7 @@ logger:
   log_dir: logs
   # Supported values: debug, info, warning, error
   # Default: info
-  log_level: info
+  log_level: debug
 
 storage:
   # Required. Relative paths are resolved from the project root.
@@ -26,6 +26,6 @@ storage:
   # Required. Loads <persona_dir>/<persona_name>.md
   persona_name: default
 
-  mcp:
-    enabled_tools:
-      - recall_context
+mcp:
+  enabled_tools:
+    - recall_context
