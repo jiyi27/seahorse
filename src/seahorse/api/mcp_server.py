@@ -1,14 +1,29 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Annotated
 
 from mcp.server.fastmcp import FastMCP
 
 from seahorse.bootstrap import AppContainer, build_app_container
-from seahorse.tools.contracts import IngestTurnResult, RecallContextResult, ToolInputMessage
+from seahorse.application.memory_search_service import MAX_TOP_K, DEFAULT_TOP_K
+from seahorse.tools.contracts import (
+    GetPersonaResult,
+    GetUserProfileResult,
+    IngestTurnResult,
+    SearchMemoryResult,
+    ToolInputMessage,
+)
+from seahorse.tools.get_persona import get_persona
+from seahorse.tools.get_user_profile import get_user_profile
 from seahorse.tools.ingest_turn import ingest_turn
-from seahorse.tools.recall_context import recall_context
-from seahorse.tools.tool_names import INGEST_TURN_TOOL, RECALL_CONTEXT_TOOL
+from seahorse.tools.search_memory import search_memory
+from seahorse.tools.tool_names import (
+    GET_PERSONA_TOOL,
+    GET_USER_PROFILE_TOOL,
+    INGEST_TURN_TOOL,
+    SEARCH_MEMORY_TOOL,
+)
 
 
 def create_mcp_server(container: AppContainer) -> FastMCP:
@@ -19,17 +34,50 @@ def create_mcp_server(container: AppContainer) -> FastMCP:
         ),
     )
 
-    if RECALL_CONTEXT_TOOL in container.enabled_mcp_tools:
+    if GET_PERSONA_TOOL in container.enabled_mcp_tools:
         @server.tool(
-            name=RECALL_CONTEXT_TOOL,
+            name=GET_PERSONA_TOOL,
             description=(
-                "Returns the user's persistent memory context, including behavioral "
-                "rules and accumulated profile. Call at the start of every session "
-                "before personalizing any response."
+                "Returns your persona - who you are, how you speak, and what you "
+                "value. Call once at the start of a session, before responding to "
+                "the user."
             ),
         )
-        def recall_context_tool() -> RecallContextResult:
-            return recall_context(container.recall_service, container.user_model_renderer)
+        def get_persona_tool() -> GetPersonaResult:
+            return get_persona(container.recall_service)
+
+    if GET_USER_PROFILE_TOOL in container.enabled_mcp_tools:
+        @server.tool(
+            name=GET_USER_PROFILE_TOOL,
+            description=(
+                "Returns what is known about the user: their background, preferences, "
+                "and constraints. Call when you need context about the user to "
+                "personalize a response. For retrieving specific past events or "
+                "details, use search_memory instead."
+            ),
+        )
+        def get_user_profile_tool() -> GetUserProfileResult:
+            return get_user_profile(container.recall_service)
+
+    if SEARCH_MEMORY_TOOL in container.enabled_mcp_tools:
+        @server.tool(
+            name=SEARCH_MEMORY_TOOL,
+            description=(
+                "Searches past memory for context that might be relevant to what the "
+                "user just said. Provide a short natural-language query describing "
+                "what you're trying to recall. Returns up to top_k results - treat "
+                "them as leads, not confirmed facts."
+            ),
+        )
+        def search_memory_tool(
+            query: Annotated[str, "Short natural-language recall query"],
+            top_k: Annotated[int, f"Maximum results to return, default {DEFAULT_TOP_K}, max {MAX_TOP_K}"] = DEFAULT_TOP_K,
+        ) -> SearchMemoryResult:
+            return search_memory(
+                container.memory_search_service,
+                query=query,
+                top_k=top_k,
+            )
 
     if INGEST_TURN_TOOL in container.enabled_mcp_tools:
         @server.tool(

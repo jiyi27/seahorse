@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from seahorse import logger
-from seahorse.domain.models import RecallContext
+from seahorse.domain.models import Persona, UserModel
 from seahorse.domain.repositories import PersonaRepository, UserModelRepository
 
 
@@ -14,17 +14,24 @@ class RecallService:
         self._persona_repository = persona_repository
         self._user_model_repository = user_model_repository
 
-    def recall(self) -> RecallContext:
-        logger.debug("recall.started", {})
-        context = RecallContext(
-            persona=self._persona_repository.load(),
-            user_model=self._user_model_repository.load(),
-        )
+    def get_persona(self) -> Persona:
+        logger.debug("recall.persona.started", {})
+        persona = self._persona_repository.load()
         logger.debug(
-            "recall.completed",
+            "recall.persona.completed",
             {
-                "has_user_model": context.user_model is not None,
-                "persona_len": len(context.persona.content),
+                "persona_len": len(persona.content),
             },
         )
-        return context
+        return persona
+
+    def get_user_model(self) -> UserModel | None:
+        logger.debug("recall.user_model.started", {})
+        user_model = self._user_model_repository.load()
+        logger.debug(
+            "recall.user_model.completed",
+            {
+                "has_user_model": user_model is not None,
+            },
+        )
+        return user_model

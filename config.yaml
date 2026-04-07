@@ -20,4 +20,6 @@ persona:
 
 mcp:
   enabled_tools:
-    - recall_context
+    - get_persona
+    - get_user_profile
+    - search_memory

@@ -3,13 +3,23 @@ from __future__ import annotations
 import pytest
 
 from seahorse.application.ingest_service import IngestService
+from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
-from seahorse.application.user_model_renderer import UserModelRenderer
-from seahorse.domain.models import Persona, TextItem, UserModel, UserModelPatch
-from seahorse.tools.contracts import INGEST_RETRY_HINT, RECALL_CONTEXT_UNAVAILABLE_HINT
+from seahorse.domain.models import FactItem, Persona, TextItem, UserModel, UserModelPatch
+from seahorse.tools.contracts import (
+    INGEST_RETRY_HINT,
+    PERSONA_UNAVAILABLE_HINT,
+    SEARCH_MEMORY_FAILED_HINT,
+    SEARCH_MEMORY_HAS_RESULTS_HINT,
+    SEARCH_MEMORY_NO_RESULTS_HINT,
+    USER_PROFILE_EMPTY_HINT,
+    USER_PROFILE_UNAVAILABLE_HINT,
+)
+from seahorse.tools.get_persona import get_persona
+from seahorse.tools.get_user_profile import get_user_profile
 from seahorse.tools.ingest_turn import ingest_turn
-from seahorse.tools.recall_context import recall_context
+from seahorse.tools.search_memory import search_memory
 
 
 class FakePersonaRepository:
@@ -49,52 +59,137 @@ class FailingPersonaRepository:
         raise RuntimeError("Persona storage unavailable")
 
 
-def test_recall_context_returns_string_payload() -> None:
-    service = RecallService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
-        user_model_repository=FakeUserModelRepository(
-            UserModel(
-                summary="Prefers direct answers.",
-                preferences=[TextItem(id="preference_001", text="Direct answers")],
+class FailingUserModelRepository:
+    def load(self) -> UserModel | None:
+        raise RuntimeError("User model storage unavailable")
+
+    def save(self, model: UserModel) -> None:
+        self.model = model
+
+
+def build_user_model() -> UserModel:
+    return UserModel(
+        summary="Prefers direct answers.",
+        facts=[
+            FactItem(
+                id="fact_001",
+                category="identity",
+                text="User works best in the evening",
             )
-        ),
+        ],
+        preferences=[TextItem(id="preference_001", text="Direct answers")],
+        constraints=[TextItem(id="constraint_001", text="Dislikes being rushed")],
     )
 
-    payload = recall_context(service, UserModelRenderer())
 
-    assert payload["success"] is True
-    assert payload["persona"] == "Be precise."
-    assert "Prefers direct answers." in payload["user_model"]
+def test_get_persona_returns_content() -> None:
+    service = RecallService(
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
+        user_model_repository=FakeUserModelRepository(build_user_model()),
+    )
+
+    payload = get_persona(service)
+
+    assert payload == {
+        "success": True,
+        "content": "Be precise.",
+    }
 
 
-def test_recall_context_returns_none_when_user_model_missing() -> None:
+def test_get_user_profile_returns_structured_profile() -> None:
+    service = RecallService(
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
+        user_model_repository=FakeUserModelRepository(build_user_model()),
+    )
+
+    payload = get_user_profile(service)
+
+    assert payload == {
+        "success": True,
+        "profile": {
+            "summary": "Prefers direct answers.",
+            "facts": [
+                {
+                    "id": "fact_001",
+                    "category": "identity",
+                    "text": "User works best in the evening",
+                }
+            ],
+            "preferences": [
+                {
+                    "id": "preference_001",
+                    "text": "Direct answers",
+                }
+            ],
+            "constraints": [
+                {
+                    "id": "constraint_001",
+                    "text": "Dislikes being rushed",
+                }
+            ],
+        },
+    }
+
+
+def test_get_user_profile_returns_null_when_user_model_missing() -> None:
     service = RecallService(
         persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
         user_model_repository=FakeUserModelRepository(),
     )
 
-    payload = recall_context(service, UserModelRenderer())
+    payload = get_user_profile(service)
 
     assert payload == {
         "success": True,
-        "persona": "Be precise.",
-        "user_model": None,
+        "profile": None,
+        "hint": USER_PROFILE_EMPTY_HINT,
     }
 
 
-def test_recall_context_returns_none_when_user_model_is_empty() -> None:
-    service = RecallService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
-        user_model_repository=FakeUserModelRepository(UserModel()),
+def test_search_memory_returns_matching_results() -> None:
+    service = MemorySearchService(FakeUserModelRepository(build_user_model()))
+
+    payload = search_memory(service, query="rushed", top_k=3)
+
+    assert payload == {
+        "success": True,
+        "results": [
+            {
+                "id": "constraint_001",
+                "source_type": "constraint",
+                "text": "Dislikes being rushed",
+            }
+        ],
+        "hint": SEARCH_MEMORY_HAS_RESULTS_HINT,
+    }
+
+
+def test_search_memory_returns_empty_results_when_not_found() -> None:
+    service = MemorySearchService(FakeUserModelRepository(build_user_model()))
+
+    payload = search_memory(service, query="travel", top_k=3)
+
+    assert payload == {
+        "success": True,
+        "results": [],
+        "hint": SEARCH_MEMORY_NO_RESULTS_HINT,
+    }
+
+
+def test_search_memory_applies_top_k_limit() -> None:
+    user_model = UserModel(
+        facts=[
+            FactItem(id="fact_001", category="identity", text="Night owl"),
+            FactItem(id="fact_002", category="note", text="Night coding"),
+        ],
+        preferences=[TextItem(id="preference_001", text="Night walks")],
     )
+    service = MemorySearchService(FakeUserModelRepository(user_model))
 
-    payload = recall_context(service, UserModelRenderer())
+    payload = search_memory(service, query="night", top_k=2)
 
-    assert payload == {
-        "success": True,
-        "persona": "Be precise.",
-        "user_model": None,
-    }
+    assert payload["success"] is True
+    assert len(payload["results"]) == 2
 
 
 def test_ingest_turn_normalizes_messages_and_returns_result() -> None:
@@ -114,19 +209,48 @@ def test_ingest_turn_normalizes_messages_and_returns_result() -> None:
     assert payload["user_model_updated"] is True
 
 
-def test_recall_context_returns_structured_internal_error_on_runtime_failure() -> None:
+def test_get_persona_returns_structured_internal_error_on_runtime_failure() -> None:
     service = RecallService(
         persona_repository=FailingPersonaRepository(),
         user_model_repository=FakeUserModelRepository(),
     )
 
-    payload = recall_context(service, UserModelRenderer())
+    payload = get_persona(service)
 
     assert payload == {
         "success": False,
         "error_type": "internal_error",
         "message": "Persona storage unavailable",
-        "hint": RECALL_CONTEXT_UNAVAILABLE_HINT,
+        "hint": PERSONA_UNAVAILABLE_HINT,
+    }
+
+
+def test_get_user_profile_returns_structured_internal_error_on_runtime_failure() -> None:
+    service = RecallService(
+        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
+        user_model_repository=FailingUserModelRepository(),
+    )
+
+    payload = get_user_profile(service)
+
+    assert payload == {
+        "success": False,
+        "error_type": "internal_error",
+        "message": "User model storage unavailable",
+        "hint": USER_PROFILE_UNAVAILABLE_HINT,
+    }
+
+
+def test_search_memory_returns_structured_internal_error_on_runtime_failure() -> None:
+    service = MemorySearchService(FailingUserModelRepository())
+
+    payload = search_memory(service, query="night")
+
+    assert payload == {
+        "success": False,
+        "error_type": "internal_error",
+        "message": "User model storage unavailable",
+        "hint": SEARCH_MEMORY_FAILED_HINT,
     }
 
 

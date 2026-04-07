@@ -5,6 +5,7 @@ from pathlib import Path
 
 from seahorse import logger
 from seahorse.application.ingest_service import IngestService
+from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.application.user_model_renderer import UserModelRenderer
@@ -30,6 +31,7 @@ from seahorse.infrastructure.repositories.user_model_json import (
 @dataclass(frozen=True)
 class AppContainer:
     recall_service: RecallService
+    memory_search_service: MemorySearchService
     ingest_service: IngestService
     user_model_renderer: UserModelRenderer
     enabled_mcp_tools: frozenset[str]
@@ -65,6 +67,9 @@ def build_app_container(
         persona_repository=persona_repository,
         user_model_repository=user_model_repository,
     )
+    memory_search_service = MemorySearchService(
+        user_model_repository=user_model_repository
+    )
     ingest_service = IngestService(
         user_model_repository=user_model_repository,
         extractor=extractor,
@@ -74,6 +79,7 @@ def build_app_container(
 
     return AppContainer(
         recall_service=recall_service,
+        memory_search_service=memory_search_service,
         ingest_service=ingest_service,
         user_model_renderer=user_model_renderer,
         enabled_mcp_tools=frozenset(app_config.mcp.enabled_tools),

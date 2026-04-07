@@ -2,20 +2,36 @@ from __future__ import annotations
 
 from pathlib import Path
 import uuid
+from typing import Annotated
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError
 
 from seahorse import logger
-from seahorse.api.constants import HEALTH_PATH, MEMORY_CONTEXT_PATH, MEMORY_INGEST_PATH
+from seahorse.api.constants import (
+    HEALTH_PATH,
+    MEMORY_INGEST_PATH,
+    MEMORY_SEARCH_PATH,
+    PERSONA_PATH,
+    USER_PROFILE_PATH,
+)
 from seahorse.bootstrap import AppContainer, build_app_container
 from seahorse.constants import APP_NAME
 from seahorse.domain.models import Message
-from seahorse.tools.contracts import IngestTurnResult, RecallContextResult, ToolFailure
+from seahorse.tools.contracts import (
+    GetPersonaResult,
+    GetUserProfileResult,
+    IngestTurnResult,
+    SearchMemoryResult,
+    ToolFailure,
+)
+from seahorse.tools.get_persona import get_persona
+from seahorse.tools.get_user_profile import get_user_profile
 from seahorse.tools.ingest_turn import ingest_turn
-from seahorse.tools.recall_context import recall_context
+from seahorse.tools.search_memory import search_memory
+
 
 class IngestRequest(BaseModel):
     session_id: str | None = None
@@ -27,7 +43,9 @@ def _error_response(payload: ToolFailure) -> JSONResponse:
     return JSONResponse(status_code=500, content=payload)
 
 
-def _http_tool_response(payload: RecallContextResult | IngestTurnResult) -> JSONResponse:
+def _http_tool_response(
+    payload: GetPersonaResult | GetUserProfileResult | SearchMemoryResult | IngestTurnResult,
+) -> JSONResponse:
     if payload["success"]:
         return JSONResponse(status_code=200, content=payload)
     return _error_response(payload)
@@ -107,10 +125,25 @@ def create_http_app(container: AppContainer) -> FastAPI:
     def health() -> dict[str, str]:
         return {"status": "ok"}
 
-    @app.get(MEMORY_CONTEXT_PATH)
-    def get_memory_context() -> JSONResponse:
+    @app.get(PERSONA_PATH)
+    def get_persona_endpoint() -> JSONResponse:
+        return _http_tool_response(get_persona(container.recall_service))
+
+    @app.get(USER_PROFILE_PATH)
+    def get_user_profile_endpoint() -> JSONResponse:
+        return _http_tool_response(get_user_profile(container.recall_service))
+
+    @app.get(MEMORY_SEARCH_PATH)
+    def get_memory_search(
+        query: Annotated[str, Query(min_length=1)],
+        top_k: Annotated[int, Query(ge=1, le=10)] = 3,
+    ) -> JSONResponse:
         return _http_tool_response(
-            recall_context(container.recall_service, container.user_model_renderer)
+            search_memory(
+                container.memory_search_service,
+                query=query,
+                top_k=top_k,
+            )
         )
 
     @app.post(MEMORY_INGEST_PATH)

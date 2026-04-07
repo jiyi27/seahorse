@@ -17,6 +17,7 @@ type FactCategory = Literal[
     "life_situation",
     "note",
 ]
+type MemorySearchSourceType = Literal["fact", "preference", "constraint"]
 
 
 class Persona(BaseModel):
@@ -39,6 +40,12 @@ class UserModel(BaseModel):
     facts: list[FactItem] = Field(default_factory=list)
     preferences: list[TextItem] = Field(default_factory=list)
     constraints: list[TextItem] = Field(default_factory=list)
+
+
+class MemorySearchResultItem(BaseModel):
+    id: str
+    source_type: MemorySearchSourceType
+    text: str
 
 
 class Message(BaseModel):
@@ -82,11 +89,6 @@ class UserModelPatch(BaseModel):
     preference_ids_to_remove: list[str] = Field(default_factory=list)
     constraints_to_add: list[str] = Field(default_factory=list)
     constraint_ids_to_remove: list[str] = Field(default_factory=list)
-
-
-class RecallContext(BaseModel):
-    persona: Persona
-    user_model: UserModel | None
 
 
 class IngestResult(BaseModel):

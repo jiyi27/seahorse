@@ -25,7 +25,7 @@ Secrets are not read from `.env` files. Export `OPENROUTER_API_KEY` in the shell
 
 `storage` and `persona` are required in `config.yaml`. Seahorse expects `storage.data_dir` and `persona.dir` / `persona.name` to be written explicitly so the memory location and active persona choice are always visible in the checked-in config.
 
-`mcp.enabled_tools` is optional. Use it when you want Seahorse to register only a subset of tools for a given agent. If omitted, Seahorse registers both `recall_context` and `ingest_turn`.
+`mcp.enabled_tools` is optional. Use it when you want Seahorse to register only a subset of tools for a given agent. If omitted, Seahorse registers `get_persona`, `get_user_profile`, `search_memory`, and `ingest_turn`.
 
 Startup is fail-fast. Seahorse exits during bootstrap if:
 

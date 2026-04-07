@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from seahorse.application.ingest_service import IngestService
+from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.domain.models import (
@@ -70,11 +71,32 @@ def test_recall_service_returns_persona_and_user_model() -> None:
     )
 
     service = RecallService(persona_repo, user_model_repo)
-    result = service.recall()
+    persona = service.get_persona()
+    user_model = service.get_user_model()
 
-    assert result.persona.content == "Be precise."
-    assert result.user_model is not None
-    assert result.user_model.summary == "Knows Python."
+    assert persona.content == "Be precise."
+    assert user_model is not None
+    assert user_model.summary == "Knows Python."
+
+
+def test_memory_search_service_returns_matching_items() -> None:
+    user_model_repo = FakeUserModelRepository(
+        UserModel(
+            facts=[FactItem(id="fact_001", category="identity", text="Uses Python")],
+            preferences=[TextItem(id="preference_001", text="Prefers concise answers")],
+        )
+    )
+
+    service = MemorySearchService(user_model_repo)
+    results = service.search("python", top_k=3)
+
+    assert [result.model_dump() for result in results] == [
+        {
+            "id": "fact_001",
+            "source_type": "fact",
+            "text": "Uses Python",
+        }
+    ]
 
 
 def test_ingest_service_merges_and_persists_user_model() -> None:
