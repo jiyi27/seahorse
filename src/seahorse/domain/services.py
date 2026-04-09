@@ -13,5 +13,5 @@ class UserModelExtractor(Protocol):
     ) -> UserModelPatch: ...
 
 
-class EpisodePipeline(Protocol):
+class ConversationVectorPipeline(Protocol):
     def process(self, conversation: ConversationInput) -> None: ...

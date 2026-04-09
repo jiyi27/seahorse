@@ -41,7 +41,7 @@ class FakeExtractor:
         )
 
 
-class FakeEpisodePipeline:
+class FakeConversationVectorPipeline:
     def process(self, conversation) -> None:
         return None
 
@@ -60,8 +60,8 @@ def build_session_ingest_service() -> SessionIngestService:
             user_model_repository=FakeUserModelRepository(),
             extractor=FakeExtractor(),
             merger=UserModelMerger(),
-            episode_pipeline=FakeEpisodePipeline(),
-        )
+        ),
+        FakeConversationVectorPipeline(),
     )
 
 

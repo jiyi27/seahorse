@@ -45,7 +45,7 @@ class FakeExtractor:
         return self.patch
 
 
-class FakeEpisodePipeline:
+class FakeConversationVectorPipeline:
     def __init__(self) -> None:
         self.calls = 0
 
@@ -117,7 +117,6 @@ def test_user_profile_ingest_service_merges_and_persists_user_model() -> None:
         user_model_repository=user_model_repo,
         extractor=extractor,
         merger=UserModelMerger(),
-        episode_pipeline=FakeEpisodePipeline(),
     )
 
     result = service.ingest(
@@ -139,12 +138,10 @@ def test_user_profile_ingest_service_merges_and_persists_user_model() -> None:
 def test_user_profile_ingest_service_reports_no_update_for_empty_initial_patch() -> None:
     user_model_repo = FakeUserModelRepository()
     extractor = FakeExtractor(UserModelPatch())
-    episode_pipeline = FakeEpisodePipeline()
     service = UserProfileIngestService(
         user_model_repository=user_model_repo,
         extractor=extractor,
         merger=UserModelMerger(),
-        episode_pipeline=episode_pipeline,
     )
 
     result = service.ingest(
@@ -156,12 +153,15 @@ def test_user_profile_ingest_service_reports_no_update_for_empty_initial_patch()
 
     assert result.user_model_updated is False
     assert len(user_model_repo.saved) == 0
-    assert episode_pipeline.calls == 1
 
 
-def test_session_ingest_service_delegates_to_user_profile_ingest_service() -> None:
+def test_session_ingest_service_coordinates_user_profile_and_vector_pipeline() -> None:
     user_profile_ingest_service = FakeUserProfileIngestService(result_updated=True)
-    service = SessionIngestService(user_profile_ingest_service)
+    conversation_vector_pipeline = FakeConversationVectorPipeline()
+    service = SessionIngestService(
+        user_profile_ingest_service,
+        conversation_vector_pipeline,
+    )
 
     result = service.ingest(
         ConversationInput(
@@ -172,7 +172,9 @@ def test_session_ingest_service_delegates_to_user_profile_ingest_service() -> No
     )
 
     assert result.user_model_updated is True
+    assert result.vector_pipeline_processed is True
     assert user_profile_ingest_service.calls == 1
+    assert conversation_vector_pipeline.calls == 1
 
 
 def test_conversation_input_normalizes_blank_content_when_messages_are_present() -> None:

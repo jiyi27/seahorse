@@ -4,7 +4,7 @@ from seahorse import logger
 from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.domain.models import ConversationInput, IngestResult
 from seahorse.domain.repositories import UserModelRepository
-from seahorse.domain.services import EpisodePipeline, UserModelExtractor
+from seahorse.domain.services import UserModelExtractor
 
 
 class UserProfileIngestService:
@@ -13,12 +13,10 @@ class UserProfileIngestService:
         user_model_repository: UserModelRepository,
         extractor: UserModelExtractor,
         merger: UserModelMerger,
-        episode_pipeline: EpisodePipeline,
     ) -> None:
         self._user_model_repository = user_model_repository
         self._extractor = extractor
         self._merger = merger
-        self._episode_pipeline = episode_pipeline
 
     def ingest(self, conversation: ConversationInput) -> IngestResult:
         logger.info(
@@ -43,7 +41,6 @@ class UserProfileIngestService:
 
         if merged.changed:
             self._user_model_repository.save(merged_user_model)
-        self._episode_pipeline.process(conversation)
 
         logger.info(
             "user_profile_ingest.completed",

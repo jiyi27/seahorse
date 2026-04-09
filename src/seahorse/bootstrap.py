@@ -17,9 +17,11 @@ from seahorse.infrastructure.config import (
     load_secrets_from_env,
     validate_app_paths,
 )
-from seahorse.infrastructure.episodes.noop_episode_pipeline import NoopEpisodePipeline
 from seahorse.infrastructure.extractors.llm_user_model_extractor import (
     LLMUserModelExtractor,
+)
+from seahorse.infrastructure.pipelines.noop_conversation_vector_pipeline import (
+    NoopConversationVectorPipeline,
 )
 from seahorse.infrastructure.providers.config import build_provider_settings
 from seahorse.infrastructure.providers.factory import build_llm_provider
@@ -70,10 +72,10 @@ def build_app_container(
         user_model_repository=user_model_repository,
         extractor=extractor,
         merger=UserModelMerger(),
-        episode_pipeline=NoopEpisodePipeline(),
     )
     session_ingest_service = SessionIngestService(
-        user_profile_ingest_service=user_profile_ingest_service
+        user_profile_ingest_service=user_profile_ingest_service,
+        conversation_vector_pipeline=NoopConversationVectorPipeline(),
     )
 
     return AppContainer(

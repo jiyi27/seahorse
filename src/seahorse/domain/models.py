@@ -94,6 +94,7 @@ class IngestResult(BaseModel):
 
 class SessionIngestResult(BaseModel):
     user_model_updated: bool
+    vector_pipeline_processed: bool
 
 
 class ProviderSettings(BaseModel):

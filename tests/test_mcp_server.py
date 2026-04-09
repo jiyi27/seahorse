@@ -43,7 +43,7 @@ class FakeExtractor:
         )
 
 
-class FakeEpisodePipeline:
+class FakeConversationVectorPipeline:
     def process(self, conversation) -> None:
         return None
 
@@ -56,8 +56,8 @@ def test_create_mcp_server_registers_expected_tools() -> None:
             user_model_repository=FakeUserModelRepository(),
             extractor=FakeExtractor(),
             merger=UserModelMerger(),
-            episode_pipeline=FakeEpisodePipeline(),
-        )
+        ),
+        FakeConversationVectorPipeline(),
     )
     container = AppContainer(
         recall_service=recall_service,
@@ -99,8 +99,8 @@ def test_create_mcp_server_registers_only_enabled_tools() -> None:
             user_model_repository=FakeUserModelRepository(),
             extractor=FakeExtractor(),
             merger=UserModelMerger(),
-            episode_pipeline=FakeEpisodePipeline(),
-        )
+        ),
+        FakeConversationVectorPipeline(),
     )
     container = AppContainer(
         recall_service=recall_service,

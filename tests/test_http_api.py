@@ -44,7 +44,7 @@ class FakeExtractor:
         )
 
 
-class FakeEpisodePipeline:
+class FakeConversationVectorPipeline:
     def process(self, conversation) -> None:
         return None
 
@@ -76,8 +76,8 @@ def build_test_client() -> TestClient:
             user_model_repository=FakeUserModelRepository(),
             extractor=FakeExtractor(),
             merger=UserModelMerger(),
-            episode_pipeline=FakeEpisodePipeline(),
-        )
+        ),
+        FakeConversationVectorPipeline(),
     )
     container = AppContainer(
         recall_service=recall_service,
@@ -219,8 +219,8 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
             user_model_repository=FakeUserModelRepository(),
             extractor=FailingExtractor(),
             merger=UserModelMerger(),
-            episode_pipeline=FakeEpisodePipeline(),
-        )
+        ),
+        FakeConversationVectorPipeline(),
     )
     container = AppContainer(
         recall_service=recall_service,
@@ -311,8 +311,8 @@ def test_user_profile_endpoint_returns_null_when_user_model_missing() -> None:
             user_model_repository=FakeUserModelRepository(),
             extractor=FakeExtractor(),
             merger=UserModelMerger(),
-            episode_pipeline=FakeEpisodePipeline(),
-        )
+        ),
+        FakeConversationVectorPipeline(),
     )
     container = AppContainer(
         recall_service=recall_service,
