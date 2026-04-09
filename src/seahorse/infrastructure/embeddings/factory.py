@@ -23,6 +23,9 @@ class OpenAICompatibleEmbeddingModel:
             return []
         return self._get_client().embed_documents(texts)
 
+    def check_connection(self) -> None:
+        self.embed_documents(["healthcheck"])
+
     def _get_client(self):
         return self._client
 

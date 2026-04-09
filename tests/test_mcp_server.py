@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from seahorse.api.mcp_server import build_default_mcp_server, create_mcp_server
+from seahorse.application.health_service import HealthService
 from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.session_ingest_service import SessionIngestService
@@ -60,6 +61,7 @@ def test_create_mcp_server_registers_expected_tools() -> None:
         FakeConversationVectorPipeline(),
     )
     container = AppContainer(
+        health_service=HealthService(),
         recall_service=recall_service,
         memory_search_service=MemorySearchService(user_model_repository),
         session_ingest_service=session_ingest_service,
@@ -103,6 +105,7 @@ def test_create_mcp_server_registers_only_enabled_tools() -> None:
         FakeConversationVectorPipeline(),
     )
     container = AppContainer(
+        health_service=HealthService(),
         recall_service=recall_service,
         memory_search_service=MemorySearchService(user_model_repository),
         session_ingest_service=session_ingest_service,

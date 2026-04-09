@@ -14,6 +14,7 @@ from seahorse.api.constants import (
 )
 from seahorse.api.http_server import create_http_app
 from seahorse.application.memory_search_service import MemorySearchService
+from seahorse.application.health_service import HealthService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_model_merger import UserModelMerger
@@ -80,6 +81,7 @@ def build_test_client() -> TestClient:
         FakeConversationVectorPipeline(),
     )
     container = AppContainer(
+        health_service=HealthService(),
         recall_service=recall_service,
         memory_search_service=MemorySearchService(user_model_repository),
         session_ingest_service=session_ingest_service,
@@ -109,7 +111,13 @@ def test_health_endpoint_returns_ok() -> None:
     response = client.get(HEALTH_PATH)
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert response.json() == {
+        "status": "ok",
+        "checks": {
+            "api": "ok",
+            "vector_memory": "disabled",
+        },
+    }
 
 
 def test_user_profile_endpoint_returns_structured_profile() -> None:
@@ -223,6 +231,7 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
         FakeConversationVectorPipeline(),
     )
     container = AppContainer(
+        health_service=HealthService(),
         recall_service=recall_service,
         memory_search_service=MemorySearchService(user_model_repository),
         session_ingest_service=session_ingest_service,
@@ -315,6 +324,7 @@ def test_user_profile_endpoint_returns_null_when_user_model_missing() -> None:
         FakeConversationVectorPipeline(),
     )
     container = AppContainer(
+        health_service=HealthService(),
         recall_service=recall_service,
         memory_search_service=MemorySearchService(user_model_repository),
         session_ingest_service=session_ingest_service,

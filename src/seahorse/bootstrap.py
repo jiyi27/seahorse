@@ -7,9 +7,11 @@ from seahorse import logger
 from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.session_ingest_service import SessionIngestService
+from seahorse.application.health_service import HealthService
 from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
 from seahorse.application.user_model_renderer import UserModelRenderer
+from seahorse.retrieval.vector_health_service import VectorHealthService
 from seahorse.retrieval.vector_search_service import VectorSearchService
 from seahorse.infrastructure.config import (
     AppPaths,
@@ -35,6 +37,7 @@ from seahorse.infrastructure.repositories.user_model_json import (
 
 @dataclass(frozen=True)
 class AppContainer:
+    health_service: HealthService
     recall_service: RecallService
     memory_search_service: MemorySearchService
     session_ingest_service: SessionIngestService
@@ -69,6 +72,15 @@ def build_app_container(
     vector_search_dependencies = build_vector_search_dependencies(app_config, secrets)
 
     recall_service = RecallService(user_model_repository=user_model_repository)
+    vector_health_service = (
+        None
+        if vector_search_dependencies is None
+        else VectorHealthService(
+            vector_search_dependencies[0],
+            vector_search_dependencies[1],
+        )
+    )
+    health_service = HealthService(vector_health_service=vector_health_service)
     memory_search_service = MemorySearchService(
         user_model_repository=user_model_repository,
         top_k=app_config.memory_search.top_k,
@@ -96,6 +108,7 @@ def build_app_container(
     )
 
     return AppContainer(
+        health_service=health_service,
         recall_service=recall_service,
         memory_search_service=memory_search_service,
         session_ingest_service=session_ingest_service,

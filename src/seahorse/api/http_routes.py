@@ -45,8 +45,8 @@ def _http_tool_response(
 
 def register_http_routes(app: FastAPI, container: AppContainer) -> None:
     @app.get(HEALTH_PATH)
-    def health() -> dict[str, str]:
-        return {"status": "ok"}
+    def health() -> dict[str, object]:
+        return container.health_service.check()
 
     @app.get(USER_PROFILE_PATH)
     def get_user_profile_endpoint() -> JSONResponse:

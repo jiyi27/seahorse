@@ -88,6 +88,9 @@ class QdrantConversationVectorStore:
             if isinstance(point.payload, dict)
         ]
 
+    def check_connection(self) -> None:
+        self._get_client().get_collections()
+
     def _ensure_collection(self, client, *, vector_size: int) -> None:
         try:
             from qdrant_client.http.models import Distance, VectorParams
