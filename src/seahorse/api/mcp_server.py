@@ -7,18 +7,15 @@ from mcp.server.fastmcp import FastMCP
 
 from seahorse.bootstrap import AppContainer, build_app_container
 from seahorse.tools.contracts import (
-    GetPersonaResult,
     GetUserProfileResult,
     IngestTurnResult,
     SearchMemoryResult,
     ToolInputMessage,
 )
-from seahorse.tools.get_persona import get_persona
 from seahorse.tools.get_user_profile import get_user_profile
 from seahorse.tools.ingest_turn import ingest_turn
 from seahorse.tools.search_memory import search_memory
 from seahorse.tools.tool_names import (
-    GET_PERSONA_TOOL,
     GET_USER_PROFILE_TOOL,
     INGEST_TURN_TOOL,
     SEARCH_MEMORY_TOOL,
@@ -32,18 +29,6 @@ def create_mcp_server(container: AppContainer) -> FastMCP:
             "Seahorse provides stable memory context and memory ingestion for an agent."
         ),
     )
-
-    if GET_PERSONA_TOOL in container.enabled_mcp_tools:
-        @server.tool(
-            name=GET_PERSONA_TOOL,
-            description=(
-                "Returns your persona - who you are, how you speak, and what you "
-                "value. Call only if you do not already have this in your current "
-                "context."
-            ),
-        )
-        def get_persona_tool() -> GetPersonaResult:
-            return get_persona(container.recall_service)
 
     if GET_USER_PROFILE_TOOL in container.enabled_mcp_tools:
         @server.tool(

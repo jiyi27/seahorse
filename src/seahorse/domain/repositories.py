@@ -2,11 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from seahorse.domain.models import Persona, UserModel
-
-
-class PersonaRepository(Protocol):
-    def load(self) -> Persona: ...
+from seahorse.domain.models import UserModel
 
 
 class UserModelRepository(Protocol):

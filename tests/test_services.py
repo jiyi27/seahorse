@@ -11,19 +11,10 @@ from seahorse.domain.models import (
     FactItem,
     FactPatchItem,
     Message,
-    Persona,
     TextItem,
     UserModel,
     UserModelPatch,
 )
-
-
-class FakePersonaRepository:
-    def __init__(self, model: Persona) -> None:
-        self.model = model
-
-    def load(self) -> Persona:
-        return self.model
 
 
 class FakeUserModelRepository:
@@ -61,8 +52,7 @@ class FakeEpisodePipeline:
         self.calls += 1
 
 
-def test_recall_service_returns_persona_and_user_model() -> None:
-    persona_repo = FakePersonaRepository(Persona(content="Be precise."))
+def test_recall_service_returns_user_model() -> None:
     user_model_repo = FakeUserModelRepository(
         UserModel(
             summary="Knows Python.",
@@ -70,11 +60,9 @@ def test_recall_service_returns_persona_and_user_model() -> None:
         )
     )
 
-    service = RecallService(persona_repo, user_model_repo)
-    persona = service.get_persona()
+    service = RecallService(user_model_repo)
     user_model = service.get_user_model()
 
-    assert persona.content == "Be precise."
     assert user_model is not None
     assert user_model.summary == "Knows Python."
 

@@ -6,15 +6,12 @@ from seahorse.application.ingest_service import IngestService
 from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
-from seahorse.domain.models import FactItem, Persona, TextItem, UserModel, UserModelPatch
-from seahorse.tools.get_persona import get_persona
+from seahorse.domain.models import FactItem, TextItem, UserModel, UserModelPatch
 from seahorse.tools.get_user_profile import get_user_profile
 from seahorse.tools.ingest_turn import ingest_turn
 from seahorse.tools.search_memory import search_memory
 from seahorse.tools.tool_hints import (
     INGEST_RETRY_HINT,
-    PERSONA_SUCCESS_HINT,
-    PERSONA_UNAVAILABLE_HINT,
     SEARCH_MEMORY_FAILED_HINT,
     SEARCH_MEMORY_HAS_RESULTS_HINT,
     SEARCH_MEMORY_NO_RESULTS_HINT,
@@ -22,14 +19,6 @@ from seahorse.tools.tool_hints import (
     USER_PROFILE_SUCCESS_HINT,
     USER_PROFILE_UNAVAILABLE_HINT,
 )
-
-
-class FakePersonaRepository:
-    def __init__(self, model: Persona) -> None:
-        self.model = model
-
-    def load(self) -> Persona:
-        return self.model
 
 
 class FakeUserModelRepository:
@@ -56,11 +45,6 @@ class FakeEpisodePipeline:
         return None
 
 
-class FailingPersonaRepository:
-    def load(self) -> Persona:
-        raise RuntimeError("Persona storage unavailable")
-
-
 class FailingUserModelRepository:
     def load(self) -> UserModel | None:
         raise RuntimeError("User model storage unavailable")
@@ -84,26 +68,8 @@ def build_user_model() -> UserModel:
     )
 
 
-def test_get_persona_returns_content() -> None:
-    service = RecallService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
-        user_model_repository=FakeUserModelRepository(build_user_model()),
-    )
-
-    payload = get_persona(service)
-
-    assert payload == {
-        "success": True,
-        "content": "Be precise.",
-        "hint": PERSONA_SUCCESS_HINT,
-    }
-
-
 def test_get_user_profile_returns_structured_profile() -> None:
-    service = RecallService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
-        user_model_repository=FakeUserModelRepository(build_user_model()),
-    )
+    service = RecallService(FakeUserModelRepository(build_user_model()))
 
     payload = get_user_profile(service)
 
@@ -136,10 +102,7 @@ def test_get_user_profile_returns_structured_profile() -> None:
 
 
 def test_get_user_profile_returns_null_when_user_model_missing() -> None:
-    service = RecallService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
-        user_model_repository=FakeUserModelRepository(),
-    )
+    service = RecallService(FakeUserModelRepository())
 
     payload = get_user_profile(service)
 
@@ -213,27 +176,8 @@ def test_ingest_turn_normalizes_messages_and_returns_result() -> None:
     assert payload["user_model_updated"] is True
 
 
-def test_get_persona_returns_structured_internal_error_on_runtime_failure() -> None:
-    service = RecallService(
-        persona_repository=FailingPersonaRepository(),
-        user_model_repository=FakeUserModelRepository(),
-    )
-
-    payload = get_persona(service)
-
-    assert payload == {
-        "success": False,
-        "error_type": "internal_error",
-        "message": "Persona storage unavailable",
-        "hint": PERSONA_UNAVAILABLE_HINT,
-    }
-
-
 def test_get_user_profile_returns_structured_internal_error_on_runtime_failure() -> None:
-    service = RecallService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
-        user_model_repository=FailingUserModelRepository(),
-    )
+    service = RecallService(FailingUserModelRepository())
 
     payload = get_user_profile(service)
 

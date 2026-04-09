@@ -22,7 +22,6 @@ from seahorse.infrastructure.extractors.llm_user_model_extractor import (
 )
 from seahorse.infrastructure.providers.config import build_provider_settings
 from seahorse.infrastructure.providers.factory import build_llm_provider
-from seahorse.infrastructure.repositories.persona_markdown import MarkdownPersonaRepository
 from seahorse.infrastructure.repositories.user_model_json import (
     JSONUserModelRepository,
 )
@@ -53,8 +52,6 @@ def build_app_container(
     logger.info("seahorse.startup", {"project_root": str(project_root)})
     provider_settings = build_provider_settings(app_config.provider, secrets)
 
-    # The selected persona Markdown file defines the agent's active persona.
-    persona_repository = MarkdownPersonaRepository(paths.persona_path)
     user_model_repository = JSONUserModelRepository(paths.storage.user_model_path)
     provider = build_llm_provider(provider_settings)
     extractor = LLMUserModelExtractor(
@@ -63,10 +60,7 @@ def build_app_container(
     )
     user_model_renderer = UserModelRenderer()
 
-    recall_service = RecallService(
-        persona_repository=persona_repository,
-        user_model_repository=user_model_repository,
-    )
+    recall_service = RecallService(user_model_repository=user_model_repository)
     memory_search_service = MemorySearchService(
         user_model_repository=user_model_repository,
         top_k=app_config.memory_search.top_k,

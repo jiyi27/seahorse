@@ -14,20 +14,17 @@ from seahorse.api.constants import (
     HEALTH_PATH,
     MEMORY_INGEST_PATH,
     MEMORY_SEARCH_PATH,
-    PERSONA_PATH,
     USER_PROFILE_PATH,
 )
 from seahorse.bootstrap import AppContainer, build_app_container
 from seahorse.constants import APP_NAME
 from seahorse.domain.models import Message
 from seahorse.tools.contracts import (
-    GetPersonaResult,
     GetUserProfileResult,
     IngestTurnResult,
     SearchMemoryResult,
     ToolFailure,
 )
-from seahorse.tools.get_persona import get_persona
 from seahorse.tools.get_user_profile import get_user_profile
 from seahorse.tools.ingest_turn import ingest_turn
 from seahorse.tools.search_memory import search_memory
@@ -44,7 +41,7 @@ def _error_response(payload: ToolFailure) -> JSONResponse:
 
 
 def _http_tool_response(
-    payload: GetPersonaResult | GetUserProfileResult | SearchMemoryResult | IngestTurnResult,
+    payload: GetUserProfileResult | SearchMemoryResult | IngestTurnResult,
 ) -> JSONResponse:
     if payload["success"]:
         return JSONResponse(status_code=200, content=payload)
@@ -124,10 +121,6 @@ def create_http_app(container: AppContainer) -> FastAPI:
     @app.get(HEALTH_PATH)
     def health() -> dict[str, str]:
         return {"status": "ok"}
-
-    @app.get(PERSONA_PATH)
-    def get_persona_endpoint() -> JSONResponse:
-        return _http_tool_response(get_persona(container.recall_service))
 
     @app.get(USER_PROFILE_PATH)
     def get_user_profile_endpoint() -> JSONResponse:

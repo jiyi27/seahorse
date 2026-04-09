@@ -108,30 +108,6 @@ class StorageConfig(BaseModel):
         return normalized
 
 
-class PersonaConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    dir: str
-    name: str
-
-    @field_validator("dir", "name")
-    @classmethod
-    def validate_non_empty(cls, value: str) -> str:
-        normalized = value.strip()
-        if not normalized:
-            raise ValueError("persona values must not be empty")
-        return normalized
-
-    @field_validator("name")
-    @classmethod
-    def validate_persona_name(cls, value: str) -> str:
-        if Path(value).name != value or value.endswith(".md"):
-            raise ValueError(
-                "persona.name must be a bare persona name without path segments"
-            )
-        return value
-
-
 class MCPConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -179,7 +155,6 @@ class AppConfig(BaseModel):
     mcp: MCPConfig = MCPConfig()
     memory_search: MemorySearchConfig = MemorySearchConfig()
     storage: StorageConfig
-    persona: PersonaConfig
 
 
 @dataclass(frozen=True)
@@ -207,14 +182,11 @@ class AppPaths:
     storage: StoragePaths
     prompt_dir: Path
     user_model_extraction_prompt_path: Path
-    persona_dir: Path
-    persona_path: Path
 
     @classmethod
     def from_config(cls, project_root: Path, app_config: AppConfig) -> "AppPaths":
         prompt_dir = project_root / "src" / "seahorse" / "prompts"
         storage_paths = StoragePaths.from_config(project_root, app_config.storage)
-        persona_dir = _resolve_project_path(project_root, app_config.persona.dir)
         return cls(
             project_root=project_root,
             storage=storage_paths,
@@ -222,8 +194,6 @@ class AppPaths:
             user_model_extraction_prompt_path=(
                 prompt_dir / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
             ),
-            persona_dir=persona_dir,
-            persona_path=persona_dir / f"{app_config.persona.name}.md",
         )
 
 
@@ -268,9 +238,4 @@ def validate_app_paths(paths: AppPaths) -> None:
         _raise_config_error(
             "Missing required prompt file: "
             f"{paths.user_model_extraction_prompt_path}"
-        )
-    if not paths.persona_path.exists():
-        _raise_config_error(
-            "Missing configured persona file: "
-            f"{paths.persona_path}"
         )

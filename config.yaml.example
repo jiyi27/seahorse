@@ -20,10 +20,9 @@ logger:
 
 mcp:
   # Optional. Controls which MCP tools are registered.
-  # Supported values: get_persona, get_user_profile, search_memory, ingest_turn
+  # Supported values: get_user_profile, search_memory, ingest_turn
   # Default: all tools enabled
   enabled_tools:
-    - get_persona
     - get_user_profile
     - search_memory
     - ingest_turn
@@ -40,9 +39,3 @@ memory_search:
 storage:
   # Required. Relative paths are resolved from the project root.
   data_dir: data
-
-persona:
-  # Required. Relative paths are resolved from the project root.
-  dir: personas
-  # Required. Loads <dir>/<name>.md
-  name: default

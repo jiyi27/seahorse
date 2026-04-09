@@ -20,7 +20,6 @@ from seahorse.infrastructure.config import (
     USER_MODEL_FILE_NAME,
     load_app_config_from_yaml,
     load_secrets_from_env,
-    validate_app_paths,
 )
 from seahorse.infrastructure.providers.config import build_provider_settings
 from seahorse.infrastructure.providers.factory import build_llm_provider
@@ -31,19 +30,11 @@ def write_minimal_runtime_files(
     project_root: Path,
     *,
     config_text: str = "",
-    persona_name: str = "default",
 ) -> None:
     prompt_dir = project_root / "src" / "seahorse" / "prompts"
     prompt_dir.mkdir(parents=True)
     (prompt_dir / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME).write_text(
         "Return JSON.",
-        encoding="utf-8",
-    )
-
-    persona_dir = project_root / "personas"
-    persona_dir.mkdir(parents=True)
-    (persona_dir / f"{persona_name}.md").write_text(
-        "# Core Rule\n\nBe precise.\n",
         encoding="utf-8",
     )
 
@@ -66,22 +57,11 @@ def test_load_app_config_from_yaml_requires_explicit_storage_block(tmp_path: Pat
         load_app_config_from_yaml(config_path)
 
 
-def test_load_app_config_from_yaml_requires_explicit_persona_block(tmp_path: Path) -> None:
-    config_path = tmp_path / DEFAULT_CONFIG_FILE_NAME
-    config_path.write_text("storage:\n  data_dir: data\n", encoding="utf-8")
-
-    with pytest.raises(RuntimeError, match="persona"):
-        load_app_config_from_yaml(config_path)
-
-
 def test_load_app_config_from_yaml_applies_defaults_with_explicit_storage(
     tmp_path: Path,
 ) -> None:
     config_path = tmp_path / DEFAULT_CONFIG_FILE_NAME
-    config_path.write_text(
-        "storage:\n  data_dir: data\npersona:\n  dir: personas\n  name: default\n",
-        encoding="utf-8",
-    )
+    config_path.write_text("storage:\n  data_dir: data\n", encoding="utf-8")
 
     config = load_app_config_from_yaml(config_path)
 
@@ -94,8 +74,6 @@ def test_load_app_config_from_yaml_applies_defaults_with_explicit_storage(
     assert config.mcp.enabled_tools == list(DEFAULT_ENABLED_MCP_TOOLS)
     assert config.memory_search.top_k == DEFAULT_MEMORY_SEARCH_TOP_K
     assert config.storage.data_dir == "data"
-    assert config.persona.dir == "personas"
-    assert config.persona.name == "default"
 
 
 def test_load_app_config_from_yaml_rejects_unsupported_mcp_tool(tmp_path: Path) -> None:
@@ -107,9 +85,6 @@ def test_load_app_config_from_yaml_rejects_unsupported_mcp_tool(tmp_path: Path) 
             "    - unknown_tool\n"
             "storage:\n"
             "  data_dir: data\n"
-            "persona:\n"
-            "  dir: personas\n"
-            "  name: default\n"
         ),
         encoding="utf-8",
     )
@@ -128,9 +103,6 @@ def test_load_app_config_from_yaml_rejects_invalid_memory_search_top_k(
             "  top_k: 0\n"
             "storage:\n"
             "  data_dir: data\n"
-            "persona:\n"
-            "  dir: personas\n"
-            "  name: default\n"
         ),
         encoding="utf-8",
     )
@@ -145,10 +117,6 @@ def test_app_paths_resolve_expected_locations(tmp_path: Path) -> None:
             "storage": {
                 "data_dir": "var/memory",
             },
-            "persona": {
-                "dir": "personas",
-                "name": "analyst",
-            },
         }
     )
 
@@ -161,33 +129,6 @@ def test_app_paths_resolve_expected_locations(tmp_path: Path) -> None:
         paths.user_model_extraction_prompt_path
         == paths.prompt_dir / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
     )
-    assert paths.persona_dir == tmp_path / "personas"
-    assert paths.persona_path == tmp_path / "personas" / "analyst.md"
-
-
-def test_validate_app_paths_rejects_missing_persona_file(tmp_path: Path) -> None:
-    config = AppConfig.model_validate(
-        {
-            "storage": {
-                "data_dir": "data",
-            },
-            "persona": {
-                "dir": "personas",
-                "name": "default",
-            },
-        }
-    )
-    prompt_dir = tmp_path / "src" / "seahorse" / "prompts"
-    prompt_dir.mkdir(parents=True)
-    (prompt_dir / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME).write_text(
-        "Return JSON.",
-        encoding="utf-8",
-    )
-
-    paths = AppPaths.from_config(tmp_path, config)
-
-    with pytest.raises(RuntimeError, match="Missing configured persona file"):
-        validate_app_paths(paths)
 
 
 def test_build_provider_settings_uses_yaml_model_and_env_secret(
@@ -201,10 +142,6 @@ def test_build_provider_settings_uses_yaml_model_and_env_secret(
                 "provider": {"name": "openrouter", "model": "openai/gpt-4.1-mini"},
                 "storage": {
                     "data_dir": "data",
-                },
-                "persona": {
-                    "dir": "personas",
-                    "name": "default",
                 },
             }
         ).provider,
@@ -229,10 +166,6 @@ def test_build_provider_settings_requires_model_for_openrouter(
                     "storage": {
                         "data_dir": "data",
                     },
-                    "persona": {
-                        "dir": "personas",
-                        "name": "default",
-                    },
                 }
             ).provider,
             SecretSettings(openrouter_api_key="test-key"),
@@ -250,9 +183,6 @@ def test_build_app_container_wires_services(
             "  model: openai/gpt-4.1-mini\n"
             "storage:\n"
             "  data_dir: data\n"
-            "persona:\n"
-            "  dir: personas\n"
-            "  name: default\n"
         ),
     )
 
@@ -273,9 +203,6 @@ def test_build_app_container_fails_fast_when_provider_model_missing(
         config_text=(
             "storage:\n"
             "  data_dir: data\n"
-            "persona:\n"
-            "  dir: personas\n"
-            "  name: default\n"
         ),
     )
 

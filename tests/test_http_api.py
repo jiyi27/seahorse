@@ -6,7 +6,6 @@ from seahorse.api.constants import (
     HEALTH_PATH,
     MEMORY_INGEST_PATH,
     MEMORY_SEARCH_PATH,
-    PERSONA_PATH,
     USER_PROFILE_PATH,
 )
 from seahorse.api.http_server import create_http_app
@@ -16,17 +15,9 @@ from seahorse.application.recall_service import RecallService
 from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.application.user_model_renderer import UserModelRenderer
 from seahorse.bootstrap import AppContainer
-from seahorse.domain.models import FactItem, Persona, TextItem, UserModel, UserModelPatch
-from seahorse.tools.tool_hints import PERSONA_SUCCESS_HINT, USER_PROFILE_SUCCESS_HINT
-from seahorse.tools.tool_names import GET_PERSONA_TOOL, GET_USER_PROFILE_TOOL, INGEST_TURN_TOOL, SEARCH_MEMORY_TOOL
-
-
-class FakePersonaRepository:
-    def __init__(self, model: Persona) -> None:
-        self.model = model
-
-    def load(self) -> Persona:
-        return self.model
+from seahorse.domain.models import FactItem, TextItem, UserModel, UserModelPatch
+from seahorse.tools.tool_hints import USER_PROFILE_SUCCESS_HINT
+from seahorse.tools.tool_names import GET_USER_PROFILE_TOOL, INGEST_TURN_TOOL, SEARCH_MEMORY_TOOL
 
 
 class FakeUserModelRepository:
@@ -74,10 +65,7 @@ def build_user_model() -> UserModel:
 
 def build_test_client() -> TestClient:
     user_model_repository = FakeUserModelRepository(build_user_model())
-    recall_service = RecallService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
-        user_model_repository=user_model_repository,
-    )
+    recall_service = RecallService(user_model_repository)
     ingest_service = IngestService(
         user_model_repository=FakeUserModelRepository(),
         extractor=FakeExtractor(),
@@ -91,7 +79,6 @@ def build_test_client() -> TestClient:
         user_model_renderer=UserModelRenderer(),
         enabled_mcp_tools=frozenset(
             {
-                GET_PERSONA_TOOL,
                 GET_USER_PROFILE_TOOL,
                 SEARCH_MEMORY_TOOL,
                 INGEST_TURN_TOOL,
@@ -108,19 +95,6 @@ def test_health_endpoint_returns_ok() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
-
-
-def test_persona_endpoint_returns_persona() -> None:
-    client = build_test_client()
-
-    response = client.get(PERSONA_PATH)
-
-    assert response.status_code == 200
-    assert response.json() == {
-        "success": True,
-        "content": "Be precise.",
-        "hint": PERSONA_SUCCESS_HINT,
-    }
 
 
 def test_user_profile_endpoint_returns_structured_profile() -> None:
@@ -181,10 +155,7 @@ def test_memory_ingest_endpoint_updates_user_model() -> None:
 
 def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
     user_model_repository = FakeUserModelRepository()
-    recall_service = RecallService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
-        user_model_repository=user_model_repository,
-    )
+    recall_service = RecallService(user_model_repository)
     ingest_service = IngestService(
         user_model_repository=FakeUserModelRepository(),
         extractor=FailingExtractor(),
@@ -198,7 +169,6 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
         user_model_renderer=UserModelRenderer(),
         enabled_mcp_tools=frozenset(
             {
-                GET_PERSONA_TOOL,
                 GET_USER_PROFILE_TOOL,
                 SEARCH_MEMORY_TOOL,
                 INGEST_TURN_TOOL,
@@ -275,10 +245,7 @@ def test_memory_ingest_endpoint_rejects_content_and_messages_together() -> None:
 
 def test_user_profile_endpoint_returns_null_when_user_model_missing() -> None:
     user_model_repository = FakeUserModelRepository()
-    recall_service = RecallService(
-        persona_repository=FakePersonaRepository(Persona(content="Be precise.")),
-        user_model_repository=user_model_repository,
-    )
+    recall_service = RecallService(user_model_repository)
     ingest_service = IngestService(
         user_model_repository=FakeUserModelRepository(),
         extractor=FakeExtractor(),
@@ -292,7 +259,6 @@ def test_user_profile_endpoint_returns_null_when_user_model_missing() -> None:
         user_model_renderer=UserModelRenderer(),
         enabled_mcp_tools=frozenset(
             {
-                GET_PERSONA_TOOL,
                 GET_USER_PROFILE_TOOL,
                 SEARCH_MEMORY_TOOL,
                 INGEST_TURN_TOOL,

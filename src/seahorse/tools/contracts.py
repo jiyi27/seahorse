@@ -14,12 +14,6 @@ class ToolFailure(TypedDict):
     hint: str
 
 
-class GetPersonaSuccess(TypedDict):
-    success: Literal[True]
-    content: str
-    hint: str
-
-
 class UserProfileFactItem(TypedDict):
     id: str
     category: str
@@ -66,7 +60,6 @@ class ToolInputMessage(TypedDict):
     text: str
 
 
-type GetPersonaResult = GetPersonaSuccess | ToolFailure
 type GetUserProfileResult = GetUserProfileSuccess | ToolFailure
 type SearchMemoryResult = SearchMemorySuccess | ToolFailure
 type IngestTurnResult = IngestTurnSuccess | ToolFailure

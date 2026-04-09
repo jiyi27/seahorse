@@ -4,15 +4,6 @@ INGEST_RETRY_HINT = (
     "An internal error occurred. Retry up to 2 times; if still failing, stop and "
     "notify the user with the message above."
 )
-PERSONA_SUCCESS_HINT = (
-    "You now have your persona. Keep it in your current context and apply it to "
-    "every response. Do not call this tool again unless you no longer have this "
-    "information in your current context."
-)
-PERSONA_UNAVAILABLE_HINT = (
-    "Persona unavailable. Do not guess your behavioral rules. Stop and notify "
-    "the user."
-)
 USER_PROFILE_SUCCESS_HINT = (
     "You now have the user's profile. Keep it in your current context. Do not "
     "call this tool again unless you no longer have this information in your "

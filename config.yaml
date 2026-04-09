@@ -13,14 +13,8 @@ logger:
 storage:
   data_dir: data
 
-persona:
-  dir: personas
-  # Required. Loads <dir>/<name>.md
-  name: infj
-
 mcp:
   enabled_tools:
-    - get_persona
     - get_user_profile
     - search_memory
 

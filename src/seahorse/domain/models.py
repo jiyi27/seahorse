@@ -20,10 +20,6 @@ type FactCategory = Literal[
 type MemorySearchSourceType = Literal["fact", "preference", "constraint"]
 
 
-class Persona(BaseModel):
-    content: str
-
-
 class FactItem(BaseModel):
     id: str
     category: FactCategory
