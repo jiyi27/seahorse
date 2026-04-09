@@ -1,0 +1,47 @@
+from __future__ import annotations
+
+from seahorse.infrastructure.config import AppConfig, SecretSettings
+from seahorse.infrastructure.embeddings.factory import (
+    EmbeddingSettings,
+    build_embedding_model,
+)
+from seahorse.infrastructure.pipelines.noop_conversation_vector_pipeline import (
+    NoopConversationVectorPipeline,
+)
+from seahorse.infrastructure.pipelines.qdrant_conversation_vector_pipeline import (
+    QdrantConversationVectorPipeline,
+)
+from seahorse.infrastructure.vectorstore.qdrant_store import (
+    QdrantSettings,
+    build_qdrant_vector_store,
+)
+
+
+def build_conversation_vector_pipeline(
+    app_config: AppConfig,
+    secrets: SecretSettings,
+):
+    if not app_config.vector_memory.enabled:
+        return NoopConversationVectorPipeline()
+
+    embedding_model = build_embedding_model(
+        EmbeddingSettings(
+            provider=app_config.embedding.provider,
+            model=app_config.embedding.model or "",
+            base_url=app_config.embedding.base_url or "",
+            api_key=secrets.embedding_api_key or "",
+            timeout_seconds=app_config.embedding.timeout_seconds,
+        )
+    )
+    vector_store = build_qdrant_vector_store(
+        QdrantSettings(
+            url=app_config.qdrant.url or "",
+            collection_name=app_config.qdrant.collection_name,
+        )
+    )
+    return QdrantConversationVectorPipeline(
+        embedding_model=embedding_model,
+        vector_store=vector_store,
+        chunk_min_characters=app_config.vector_memory.chunk_min_characters,
+        chunk_max_characters=app_config.vector_memory.chunk_max_characters,
+    )

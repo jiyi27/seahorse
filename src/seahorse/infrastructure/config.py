@@ -9,6 +9,10 @@ import yaml
 from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
 
 from seahorse.constants import OPENROUTER_PROVIDER
+from seahorse.ingest.constants import (
+    DEFAULT_MAX_CHUNK_CHARACTERS,
+    DEFAULT_MIN_CHUNK_CHARACTERS,
+)
 from seahorse.tools.tool_names import ALL_TOOL_NAMES
 
 DEFAULT_CONFIG_FILE_NAME = "config.yaml"
@@ -16,7 +20,13 @@ DEFAULT_LOG_DIR = "logs"
 DEFAULT_LOG_LEVEL = "info"
 DEFAULT_PROVIDER_TIMEOUT_SECONDS = 60.0
 DEFAULT_MEMORY_SEARCH_TOP_K = 3
+DEFAULT_VECTOR_MEMORY_TOP_K = 5
+DEFAULT_VECTOR_MEMORY_ENABLED = False
+DEFAULT_EMBEDDING_PROVIDER = "openai_compatible"
+DEFAULT_EMBEDDING_TIMEOUT_SECONDS = 30.0
+DEFAULT_QDRANT_COLLECTION_NAME = "seahorse_memory"
 SUPPORTED_LOG_LEVELS = frozenset({"debug", "info", "warning", "error"})
+SUPPORTED_EMBEDDING_PROVIDERS = frozenset({DEFAULT_EMBEDDING_PROVIDER})
 USER_MODEL_FILE_NAME = "user_model.json"
 USER_MODEL_EXTRACTION_PROMPT_FILE_NAME = "user_model_extraction.md"
 DEFAULT_ENABLED_MCP_TOOLS = tuple(sorted(ALL_TOOL_NAMES))
@@ -147,6 +157,97 @@ class MemorySearchConfig(BaseModel):
         return value
 
 
+class VectorMemoryConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = DEFAULT_VECTOR_MEMORY_ENABLED
+    top_k: int = DEFAULT_VECTOR_MEMORY_TOP_K
+    chunk_min_characters: int = DEFAULT_MIN_CHUNK_CHARACTERS
+    chunk_max_characters: int = DEFAULT_MAX_CHUNK_CHARACTERS
+
+    @field_validator("top_k")
+    @classmethod
+    def validate_top_k(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("vector_memory.top_k must be greater than 0")
+        return value
+
+    @field_validator("chunk_min_characters")
+    @classmethod
+    def validate_chunk_min_characters(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("vector_memory.chunk_min_characters must be greater than 0")
+        return value
+
+    @field_validator("chunk_max_characters")
+    @classmethod
+    def validate_chunk_max_characters(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("vector_memory.chunk_max_characters must be greater than 0")
+        return value
+
+
+class EmbeddingConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    provider: str = DEFAULT_EMBEDDING_PROVIDER
+    model: str | None = None
+    base_url: str | None = None
+    api_key_env: str | None = None
+    timeout_seconds: float = DEFAULT_EMBEDDING_TIMEOUT_SECONDS
+
+    @field_validator("provider")
+    @classmethod
+    def validate_provider(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in SUPPORTED_EMBEDDING_PROVIDERS:
+            valid = ", ".join(sorted(SUPPORTED_EMBEDDING_PROVIDERS))
+            raise ValueError(f"embedding.provider must be one of: {valid}")
+        return normalized
+
+    @field_validator("model", "base_url", "api_key_env")
+    @classmethod
+    def validate_optional_non_empty(cls, value: str | None, info) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError(f"embedding.{info.field_name} must not be empty")
+        return normalized
+
+    @field_validator("timeout_seconds")
+    @classmethod
+    def validate_timeout(cls, value: float) -> float:
+        if value <= 0:
+            raise ValueError("embedding.timeout_seconds must be greater than 0")
+        return value
+
+
+class QdrantConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    url: str | None = None
+    collection_name: str = DEFAULT_QDRANT_COLLECTION_NAME
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("qdrant.url must not be empty")
+        return normalized
+
+    @field_validator("collection_name")
+    @classmethod
+    def validate_collection_name(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("qdrant.collection_name must not be empty")
+        return normalized
+
+
 class AppConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -154,12 +255,16 @@ class AppConfig(BaseModel):
     logger: LoggerConfig = LoggerConfig()
     mcp: MCPConfig = MCPConfig()
     memory_search: MemorySearchConfig = MemorySearchConfig()
+    vector_memory: VectorMemoryConfig = VectorMemoryConfig()
+    embedding: EmbeddingConfig = EmbeddingConfig()
+    qdrant: QdrantConfig = QdrantConfig()
     storage: StorageConfig
 
 
 @dataclass(frozen=True)
 class SecretSettings:
     openrouter_api_key: str
+    embedding_api_key: str | None = None
 
 
 @dataclass(frozen=True)
@@ -197,13 +302,29 @@ class AppPaths:
         )
 
 
-def load_secrets_from_env() -> SecretSettings:
+def load_secrets_from_env(app_config: AppConfig) -> SecretSettings:
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         _raise_config_error(
             "Missing required environment variable: OPENROUTER_API_KEY"
         )
-    return SecretSettings(openrouter_api_key=api_key)
+    embedding_api_key: str | None = None
+    if app_config.vector_memory.enabled:
+        api_key_env = app_config.embedding.api_key_env
+        if not api_key_env:
+            _raise_config_error(
+                "embedding.api_key_env is required when vector_memory.enabled is true"
+            )
+        embedding_api_key = os.environ.get(api_key_env)
+        if not embedding_api_key:
+            _raise_config_error(
+                f"Missing required environment variable: {api_key_env}"
+            )
+
+    return SecretSettings(
+        openrouter_api_key=api_key,
+        embedding_api_key=embedding_api_key,
+    )
 
 
 def load_app_config_from_yaml(path: Path) -> AppConfig:
@@ -238,4 +359,31 @@ def validate_app_paths(paths: AppPaths) -> None:
         _raise_config_error(
             "Missing required prompt file: "
             f"{paths.user_model_extraction_prompt_path}"
+        )
+
+
+def validate_vector_memory_config(app_config: AppConfig) -> None:
+    if not app_config.vector_memory.enabled:
+        return
+
+    if app_config.vector_memory.chunk_min_characters > app_config.vector_memory.chunk_max_characters:
+        _raise_config_error(
+            "vector_memory.chunk_min_characters must be less than or equal to "
+            "vector_memory.chunk_max_characters"
+        )
+    if not app_config.embedding.model:
+        _raise_config_error(
+            "embedding.model is required when vector_memory.enabled is true"
+        )
+    if not app_config.embedding.base_url:
+        _raise_config_error(
+            "embedding.base_url is required when vector_memory.enabled is true"
+        )
+    if not app_config.embedding.api_key_env:
+        _raise_config_error(
+            "embedding.api_key_env is required when vector_memory.enabled is true"
+        )
+    if not app_config.qdrant.url:
+        _raise_config_error(
+            "qdrant.url is required when vector_memory.enabled is true"
         )

@@ -20,3 +20,20 @@ mcp:
 
 memory_search:
   top_k: 3
+
+vector_memory:
+  enabled: false
+  top_k: 5
+  chunk_min_characters: 240
+  chunk_max_characters: 1200
+
+embedding:
+  provider: openai_compatible
+  model: text-embedding-3-small
+  base_url: https://api.openai.com/v1
+  api_key_env: OPENAI_API_KEY
+  timeout_seconds: 30.0
+
+qdrant:
+  url: http://localhost:6333
+  collection_name: seahorse_memory

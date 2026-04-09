@@ -15,13 +15,14 @@ from seahorse.infrastructure.config import (
     DEFAULT_CONFIG_FILE_NAME,
     load_app_config_from_yaml,
     load_secrets_from_env,
+    validate_vector_memory_config,
     validate_app_paths,
 )
 from seahorse.infrastructure.extractors.llm_user_model_extractor import (
     LLMUserModelExtractor,
 )
-from seahorse.infrastructure.pipelines.noop_conversation_vector_pipeline import (
-    NoopConversationVectorPipeline,
+from seahorse.infrastructure.pipelines.factory import (
+    build_conversation_vector_pipeline,
 )
 from seahorse.infrastructure.providers.config import build_provider_settings
 from seahorse.infrastructure.providers.factory import build_llm_provider
@@ -44,7 +45,8 @@ def build_app_container(
 ) -> AppContainer:
     resolved_config_path = config_path or project_root / DEFAULT_CONFIG_FILE_NAME
     app_config = load_app_config_from_yaml(resolved_config_path)
-    secrets = load_secrets_from_env()
+    validate_vector_memory_config(app_config)
+    secrets = load_secrets_from_env(app_config)
     paths = AppPaths.from_config(project_root, app_config)
     validate_app_paths(paths)
 
@@ -75,7 +77,10 @@ def build_app_container(
     )
     session_ingest_service = SessionIngestService(
         user_profile_ingest_service=user_profile_ingest_service,
-        conversation_vector_pipeline=NoopConversationVectorPipeline(),
+        conversation_vector_pipeline=build_conversation_vector_pipeline(
+            app_config,
+            secrets,
+        ),
     )
 
     return AppContainer(

@@ -31,11 +31,41 @@ memory_search:
   # Optional. Controls how many memory hits search_memory returns.
   # Default: 3
   top_k: 3
-  # Future direction only, not implemented today:
-  # memory_indexing:
-  #   chunk_size: 500
-  #   chunk_overlap: 50
 
 storage:
   # Required. Relative paths are resolved from the project root.
   data_dir: data
+
+vector_memory:
+  # Optional. Enables session transcript vector indexing.
+  # Default: false
+  enabled: false
+  # Optional. Controls vector recall result count once retrieval is added.
+  # Default: 5
+  top_k: 5
+  # Optional. Controls how short blocks are merged before embedding.
+  # Default: 240
+  chunk_min_characters: 240
+  # Optional. Controls the largest chunk size before a new chunk is started.
+  # Default: 1200
+  chunk_max_characters: 1200
+
+embedding:
+  # Required when vector_memory.enabled is true.
+  # Supported values: openai_compatible
+  provider: openai_compatible
+  # Required when vector_memory.enabled is true.
+  model: text-embedding-3-small
+  # Required when vector_memory.enabled is true.
+  base_url: https://api.openai.com/v1
+  # Required when vector_memory.enabled is true.
+  # The API key is read from this environment variable at startup.
+  api_key_env: OPENAI_API_KEY
+  # Default: 30.0
+  timeout_seconds: 30.0
+
+qdrant:
+  # Required when vector_memory.enabled is true.
+  url: http://localhost:6333
+  # Default: seahorse_memory
+  collection_name: seahorse_memory

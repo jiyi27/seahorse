@@ -21,6 +21,9 @@ from seahorse.infrastructure.config import (
     load_app_config_from_yaml,
     load_secrets_from_env,
 )
+from seahorse.infrastructure.pipelines.noop_conversation_vector_pipeline import (
+    NoopConversationVectorPipeline,
+)
 from seahorse.infrastructure.providers.config import build_provider_settings
 from seahorse.infrastructure.providers.factory import build_llm_provider
 from seahorse.infrastructure.providers.openrouter import OpenRouterProvider
@@ -43,10 +46,36 @@ def write_minimal_runtime_files(
 
 def test_load_secrets_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    app_config = AppConfig.model_validate({"storage": {"data_dir": "data"}})
 
-    settings = load_secrets_from_env()
+    settings = load_secrets_from_env(app_config)
 
     assert settings.openrouter_api_key == "test-key"
+    assert settings.embedding_api_key is None
+
+
+def test_load_secrets_from_env_loads_embedding_api_key_when_vector_memory_enabled(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setenv("TEST_EMBEDDING_KEY", "embed-key")
+
+    settings = load_secrets_from_env(
+        AppConfig.model_validate(
+            {
+                "storage": {"data_dir": "data"},
+                "vector_memory": {"enabled": True},
+                "embedding": {
+                    "model": "text-embedding-3-small",
+                    "base_url": "https://api.openai.com/v1",
+                    "api_key_env": "TEST_EMBEDDING_KEY",
+                },
+                "qdrant": {"url": "http://localhost:6333"},
+            }
+        )
+    )
+
+    assert settings.embedding_api_key == "embed-key"
 
 
 def test_load_app_config_from_yaml_requires_explicit_storage_block(tmp_path: Path) -> None:
@@ -145,7 +174,9 @@ def test_build_provider_settings_uses_yaml_model_and_env_secret(
                 },
             }
         ).provider,
-        load_secrets_from_env(),
+        load_secrets_from_env(
+            AppConfig.model_validate({"storage": {"data_dir": "data"}})
+        ),
     )
 
     assert provider_settings.api_key == "test-key"
@@ -192,6 +223,10 @@ def test_build_app_container_wires_services(
     assert container.memory_search_service is not None
     assert container.session_ingest_service is not None
     assert container.enabled_mcp_tools == frozenset(DEFAULT_ENABLED_MCP_TOOLS)
+    assert isinstance(
+        container.session_ingest_service._conversation_vector_pipeline,
+        NoopConversationVectorPipeline,
+    )
 
 
 def test_build_app_container_fails_fast_when_provider_model_missing(
@@ -207,6 +242,31 @@ def test_build_app_container_fails_fast_when_provider_model_missing(
     )
 
     with pytest.raises(RuntimeError, match="provider.model"):
+        build_app_container(tmp_path)
+
+
+def test_build_app_container_fails_fast_when_vector_memory_enabled_without_qdrant(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "embed-key")
+    write_minimal_runtime_files(
+        tmp_path,
+        config_text=(
+            "provider:\n"
+            "  model: openai/gpt-4.1-mini\n"
+            "storage:\n"
+            "  data_dir: data\n"
+            "vector_memory:\n"
+            "  enabled: true\n"
+            "embedding:\n"
+            "  model: text-embedding-3-small\n"
+            "  base_url: https://api.openai.com/v1\n"
+            "  api_key_env: OPENAI_API_KEY\n"
+        ),
+    )
+
+    with pytest.raises(RuntimeError, match="qdrant.url"):
         build_app_container(tmp_path)
 
 
