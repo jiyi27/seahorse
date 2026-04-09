@@ -1,0 +1,66 @@
+from __future__ import annotations
+
+from seahorse.domain.models import MemorySearchResultItem
+from seahorse.retrieval.result_rendering import render_vector_search_result
+from seahorse.retrieval.vector_search_service import VectorSearchService
+
+
+class FakeEmbeddingModel:
+    def __init__(self) -> None:
+        self.calls: list[list[str]] = []
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        self.calls.append(texts)
+        return [[0.3, 0.4] for _ in texts]
+
+
+class FakeVectorStore:
+    def __init__(self, payloads: list[dict[str, object]]) -> None:
+        self.payloads = payloads
+        self.calls: list[tuple[list[float], int]] = []
+
+    def search_chunks(self, *, query_vector: list[float], limit: int) -> list[dict[str, object]]:
+        self.calls.append((query_vector, limit))
+        return self.payloads
+
+
+def test_render_vector_search_result_uses_assistant_text_first() -> None:
+    result = render_vector_search_result(
+        {
+            "chunk_id": "chunk-1",
+            "assistant_text": "We discussed adding vector memory.",
+            "user_text": "I want memory.",
+        }
+    )
+
+    assert result == MemorySearchResultItem(
+        id="chunk-1",
+        source_type="conversation",
+        text="We discussed adding vector memory.",
+    )
+
+
+def test_vector_search_service_embeds_query_and_renders_results() -> None:
+    embedding_model = FakeEmbeddingModel()
+    vector_store = FakeVectorStore(
+        [
+            {
+                "chunk_id": "chunk-1",
+                "assistant_text": "We discussed adding vector memory.",
+                "user_text": "I want memory.",
+            }
+        ]
+    )
+    service = VectorSearchService(embedding_model, vector_store, top_k=5)
+
+    results = service.search("vector memory")
+
+    assert embedding_model.calls == [["vector memory"]]
+    assert vector_store.calls == [([0.3, 0.4], 5)]
+    assert results == [
+        MemorySearchResultItem(
+            id="chunk-1",
+            source_type="conversation",
+            text="We discussed adding vector memory.",
+        )
+    ]

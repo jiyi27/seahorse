@@ -60,6 +60,34 @@ class QdrantConversationVectorStore:
             },
         )
 
+    def search_chunks(
+        self,
+        *,
+        query_vector: list[float],
+        limit: int,
+    ) -> list[dict[str, object]]:
+        client = self._get_client()
+        search_result = client.search(
+            collection_name=self._settings.collection_name,
+            query_vector=query_vector,
+            limit=limit,
+            with_payload=True,
+            with_vectors=False,
+        )
+        logger.info(
+            "vector_store.search.completed",
+            {
+                "collection": self._settings.collection_name,
+                "limit": limit,
+                "result_count": len(search_result),
+            },
+        )
+        return [
+            point.payload
+            for point in search_result
+            if isinstance(point.payload, dict)
+        ]
+
     def _ensure_collection(self, client, *, vector_size: int) -> None:
         try:
             from qdrant_client.http.models import Distance, VectorParams

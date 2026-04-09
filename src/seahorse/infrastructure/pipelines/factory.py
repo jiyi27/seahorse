@@ -45,3 +45,28 @@ def build_conversation_vector_pipeline(
         chunk_min_characters=app_config.vector_memory.chunk_min_characters,
         chunk_max_characters=app_config.vector_memory.chunk_max_characters,
     )
+
+
+def build_vector_search_dependencies(
+    app_config: AppConfig,
+    secrets: SecretSettings,
+):
+    if not app_config.vector_memory.enabled:
+        return None
+
+    embedding_model = build_embedding_model(
+        EmbeddingSettings(
+            provider=app_config.embedding.provider,
+            model=app_config.embedding.model or "",
+            base_url=app_config.embedding.base_url or "",
+            api_key=secrets.embedding_api_key or "",
+            timeout_seconds=app_config.embedding.timeout_seconds,
+        )
+    )
+    vector_store = build_qdrant_vector_store(
+        QdrantSettings(
+            url=app_config.qdrant.url or "",
+            collection_name=app_config.qdrant.collection_name,
+        )
+    )
+    return embedding_model, vector_store

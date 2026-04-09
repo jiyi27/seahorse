@@ -11,6 +11,7 @@ from seahorse.domain.models import (
     ConversationInput,
     FactItem,
     FactPatchItem,
+    MemorySearchResultItem,
     Message,
     TextItem,
     UserModel,
@@ -51,6 +52,16 @@ class FakeConversationVectorPipeline:
 
     def process(self, conversation: ConversationInput) -> None:
         self.calls += 1
+
+
+class FakeVectorSearchService:
+    def __init__(self, results: list | None = None) -> None:
+        self.results = results or []
+        self.calls = 0
+
+    def search(self, query: str):
+        self.calls += 1
+        return self.results
 
 
 class FakeUserProfileIngestService:
@@ -102,6 +113,62 @@ def test_memory_search_service_returns_matching_items() -> None:
             "text": "Uses Python",
         }
     ]
+
+
+def test_memory_search_service_prefers_vector_results_when_available() -> None:
+    user_model_repo = FakeUserModelRepository(
+        UserModel(
+            facts=[FactItem(id="fact_001", category="identity", text="Uses Python")],
+        )
+    )
+    vector_search_service = FakeVectorSearchService(
+        [
+            MemorySearchResultItem(
+                id="chunk_001",
+                source_type="conversation",
+                text="Assistant previously suggested using stable chunking.",
+            )
+        ]
+    )
+
+    service = MemorySearchService(
+        user_model_repo,
+        vector_search_service=vector_search_service,
+    )
+    results = service.search("chunking")
+
+    assert [result.model_dump() for result in results] == [
+        {
+            "id": "chunk_001",
+            "source_type": "conversation",
+            "text": "Assistant previously suggested using stable chunking.",
+        }
+    ]
+    assert vector_search_service.calls == 1
+
+
+def test_memory_search_service_falls_back_to_user_model_when_vector_returns_nothing() -> None:
+    user_model_repo = FakeUserModelRepository(
+        UserModel(
+            preferences=[TextItem(id="preference_001", text="Prefers concise answers")],
+        )
+    )
+    vector_search_service = FakeVectorSearchService()
+
+    service = MemorySearchService(
+        user_model_repo,
+        vector_search_service=vector_search_service,
+    )
+    results = service.search("concise")
+
+    assert [result.model_dump() for result in results] == [
+        {
+            "id": "preference_001",
+            "source_type": "preference",
+            "text": "Prefers concise answers",
+        }
+    ]
+    assert vector_search_service.calls == 1
 
 
 def test_user_profile_ingest_service_merges_and_persists_user_model() -> None:

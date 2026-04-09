@@ -17,7 +17,7 @@ type FactCategory = Literal[
     "life_situation",
     "note",
 ]
-type MemorySearchSourceType = Literal["fact", "preference", "constraint"]
+type MemorySearchSourceType = Literal["fact", "preference", "constraint", "conversation"]
 
 
 class FactItem(BaseModel):

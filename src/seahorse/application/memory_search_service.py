@@ -13,9 +13,11 @@ class MemorySearchService:
         user_model_repository: UserModelRepository,
         *,
         top_k: int = DEFAULT_TOP_K,
+        vector_search_service=None,
     ) -> None:
         self._user_model_repository = user_model_repository
         self._top_k = top_k
+        self._vector_search_service = vector_search_service
 
     def search(self, query: str) -> list[MemorySearchResultItem]:
         normalized_query = query.strip().lower()
@@ -29,13 +31,25 @@ class MemorySearchService:
             logger.debug("memory_search.completed", {"result_count": 0})
             return []
 
+        if self._vector_search_service is not None:
+            vector_results = self._vector_search_service.search(normalized_query)
+            if vector_results:
+                logger.debug(
+                    "memory_search.completed",
+                    {"result_count": len(vector_results), "source": "vector"},
+                )
+                return vector_results
+
         user_model = self._user_model_repository.load()
         if user_model is None:
             logger.debug("memory_search.completed", {"result_count": 0})
             return []
 
         results = _search_user_model(user_model, normalized_query, self._top_k)
-        logger.debug("memory_search.completed", {"result_count": len(results)})
+        logger.debug(
+            "memory_search.completed",
+            {"result_count": len(results), "source": "user_model"},
+        )
         return results
 
 

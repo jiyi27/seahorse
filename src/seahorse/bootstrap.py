@@ -10,6 +10,7 @@ from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
 from seahorse.application.user_model_renderer import UserModelRenderer
+from seahorse.retrieval.vector_search_service import VectorSearchService
 from seahorse.infrastructure.config import (
     AppPaths,
     DEFAULT_CONFIG_FILE_NAME,
@@ -23,6 +24,7 @@ from seahorse.infrastructure.extractors.llm_user_model_extractor import (
 )
 from seahorse.infrastructure.pipelines.factory import (
     build_conversation_vector_pipeline,
+    build_vector_search_dependencies,
 )
 from seahorse.infrastructure.providers.config import build_provider_settings
 from seahorse.infrastructure.providers.factory import build_llm_provider
@@ -64,11 +66,21 @@ def build_app_container(
         prompt_path=paths.user_model_extraction_prompt_path,
     )
     user_model_renderer = UserModelRenderer()
+    vector_search_dependencies = build_vector_search_dependencies(app_config, secrets)
 
     recall_service = RecallService(user_model_repository=user_model_repository)
     memory_search_service = MemorySearchService(
         user_model_repository=user_model_repository,
         top_k=app_config.memory_search.top_k,
+        vector_search_service=(
+            None
+            if vector_search_dependencies is None
+            else VectorSearchService(
+                vector_search_dependencies[0],
+                vector_search_dependencies[1],
+                top_k=app_config.vector_memory.top_k,
+            )
+        ),
     )
     user_profile_ingest_service = UserProfileIngestService(
         user_model_repository=user_model_repository,
