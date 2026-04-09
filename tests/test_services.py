@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from seahorse.application.ingest_service import IngestService
 from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.recall_service import RecallService
+from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_model_merger import UserModelMerger
+from seahorse.application.user_profile_ingest_service import UserProfileIngestService
 from seahorse.domain.models import (
     ConversationInput,
     FactItem,
@@ -52,6 +53,22 @@ class FakeEpisodePipeline:
         self.calls += 1
 
 
+class FakeUserProfileIngestService:
+    def __init__(self, result_updated: bool) -> None:
+        self.calls = 0
+        self.result_updated = result_updated
+
+    def ingest(self, conversation: ConversationInput):
+        self.calls += 1
+        return type(
+            "Result",
+            (),
+            {
+                "user_model_updated": self.result_updated,
+            },
+        )()
+
+
 def test_recall_service_returns_user_model() -> None:
     user_model_repo = FakeUserModelRepository(
         UserModel(
@@ -87,7 +104,7 @@ def test_memory_search_service_returns_matching_items() -> None:
     ]
 
 
-def test_ingest_service_merges_and_persists_user_model() -> None:
+def test_user_profile_ingest_service_merges_and_persists_user_model() -> None:
     user_model_repo = FakeUserModelRepository()
     extractor = FakeExtractor(
         UserModelPatch(
@@ -96,7 +113,7 @@ def test_ingest_service_merges_and_persists_user_model() -> None:
             constraints_to_add=["Avoid unnecessary fluff"],
         )
     )
-    service = IngestService(
+    service = UserProfileIngestService(
         user_model_repository=user_model_repo,
         extractor=extractor,
         merger=UserModelMerger(),
@@ -119,11 +136,11 @@ def test_ingest_service_merges_and_persists_user_model() -> None:
     assert len(user_model_repo.saved) == 1
 
 
-def test_ingest_service_reports_no_update_for_empty_initial_patch() -> None:
+def test_user_profile_ingest_service_reports_no_update_for_empty_initial_patch() -> None:
     user_model_repo = FakeUserModelRepository()
     extractor = FakeExtractor(UserModelPatch())
     episode_pipeline = FakeEpisodePipeline()
-    service = IngestService(
+    service = UserProfileIngestService(
         user_model_repository=user_model_repo,
         extractor=extractor,
         merger=UserModelMerger(),
@@ -140,6 +157,22 @@ def test_ingest_service_reports_no_update_for_empty_initial_patch() -> None:
     assert result.user_model_updated is False
     assert len(user_model_repo.saved) == 0
     assert episode_pipeline.calls == 1
+
+
+def test_session_ingest_service_delegates_to_user_profile_ingest_service() -> None:
+    user_profile_ingest_service = FakeUserProfileIngestService(result_updated=True)
+    service = SessionIngestService(user_profile_ingest_service)
+
+    result = service.ingest(
+        ConversationInput(
+            source="http",
+            session_id="session-1",
+            messages=[Message(role="user", text="Keep it concise.")],
+        )
+    )
+
+    assert result.user_model_updated is True
+    assert user_profile_ingest_service.calls == 1
 
 
 def test_conversation_input_normalizes_blank_content_when_messages_are_present() -> None:

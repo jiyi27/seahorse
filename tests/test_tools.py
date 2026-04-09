@@ -2,10 +2,11 @@ from __future__ import annotations
 
 import pytest
 
-from seahorse.application.ingest_service import IngestService
 from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.recall_service import RecallService
+from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_model_merger import UserModelMerger
+from seahorse.application.user_profile_ingest_service import UserProfileIngestService
 from seahorse.domain.models import FactItem, TextItem, UserModel, UserModelPatch
 from seahorse.tools.get_user_profile import get_user_profile
 from seahorse.tools.ingest_turn import ingest_turn
@@ -51,6 +52,17 @@ class FailingUserModelRepository:
 
     def save(self, model: UserModel) -> None:
         self.model = model
+
+
+def build_session_ingest_service() -> SessionIngestService:
+    return SessionIngestService(
+        UserProfileIngestService(
+            user_model_repository=FakeUserModelRepository(),
+            extractor=FakeExtractor(),
+            merger=UserModelMerger(),
+            episode_pipeline=FakeEpisodePipeline(),
+        )
+    )
 
 
 def build_user_model() -> UserModel:
@@ -160,12 +172,7 @@ def test_search_memory_applies_top_k_limit() -> None:
 
 
 def test_ingest_turn_normalizes_messages_and_returns_result() -> None:
-    service = IngestService(
-        user_model_repository=FakeUserModelRepository(),
-        extractor=FakeExtractor(),
-        merger=UserModelMerger(),
-        episode_pipeline=FakeEpisodePipeline(),
-    )
+    service = build_session_ingest_service()
 
     payload = ingest_turn(
         service,
@@ -203,12 +210,7 @@ def test_search_memory_returns_structured_internal_error_on_runtime_failure() ->
 
 
 def test_ingest_turn_returns_structured_internal_error_on_runtime_failure() -> None:
-    service = IngestService(
-        user_model_repository=FakeUserModelRepository(),
-        extractor=FakeExtractor(),
-        merger=UserModelMerger(),
-        episode_pipeline=FakeEpisodePipeline(),
-    )
+    service = build_session_ingest_service()
 
     with pytest.MonkeyPatch.context() as monkeypatch:
         monkeypatch.setattr(

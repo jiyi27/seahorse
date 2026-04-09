@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from seahorse.application.ingest_service import IngestService
+from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.domain.models import (
     ConversationInput,
     ConversationSource,
@@ -16,7 +16,7 @@ from seahorse.tools.tool_hints import INGEST_RETRY_HINT
 
 
 def ingest_turn(
-    service: IngestService,
+    service: SessionIngestService,
     *,
     content: str | None = None,
     messages: list[Message | ToolInputMessage] | None = None,

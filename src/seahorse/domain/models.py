@@ -92,6 +92,10 @@ class IngestResult(BaseModel):
     user_model_updated: bool
 
 
+class SessionIngestResult(BaseModel):
+    user_model_updated: bool
+
+
 class ProviderSettings(BaseModel):
     provider: Literal["openrouter"] = OPENROUTER_PROVIDER
     model: str

@@ -5,10 +5,11 @@ from pathlib import Path
 import pytest
 
 from seahorse.api.mcp_server import build_default_mcp_server, create_mcp_server
-from seahorse.application.ingest_service import IngestService
 from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.recall_service import RecallService
+from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_model_merger import UserModelMerger
+from seahorse.application.user_profile_ingest_service import UserProfileIngestService
 from seahorse.application.user_model_renderer import UserModelRenderer
 from seahorse.bootstrap import AppContainer
 from seahorse.domain.models import UserModel, UserModelPatch
@@ -50,16 +51,18 @@ class FakeEpisodePipeline:
 def test_create_mcp_server_registers_expected_tools() -> None:
     user_model_repository = FakeUserModelRepository()
     recall_service = RecallService(user_model_repository)
-    ingest_service = IngestService(
-        user_model_repository=FakeUserModelRepository(),
-        extractor=FakeExtractor(),
-        merger=UserModelMerger(),
-        episode_pipeline=FakeEpisodePipeline(),
+    session_ingest_service = SessionIngestService(
+        UserProfileIngestService(
+            user_model_repository=FakeUserModelRepository(),
+            extractor=FakeExtractor(),
+            merger=UserModelMerger(),
+            episode_pipeline=FakeEpisodePipeline(),
+        )
     )
     container = AppContainer(
         recall_service=recall_service,
         memory_search_service=MemorySearchService(user_model_repository),
-        ingest_service=ingest_service,
+        session_ingest_service=session_ingest_service,
         user_model_renderer=UserModelRenderer(),
         enabled_mcp_tools=frozenset(
             {
@@ -91,16 +94,18 @@ def test_create_mcp_server_registers_expected_tools() -> None:
 def test_create_mcp_server_registers_only_enabled_tools() -> None:
     user_model_repository = FakeUserModelRepository()
     recall_service = RecallService(user_model_repository)
-    ingest_service = IngestService(
-        user_model_repository=FakeUserModelRepository(),
-        extractor=FakeExtractor(),
-        merger=UserModelMerger(),
-        episode_pipeline=FakeEpisodePipeline(),
+    session_ingest_service = SessionIngestService(
+        UserProfileIngestService(
+            user_model_repository=FakeUserModelRepository(),
+            extractor=FakeExtractor(),
+            merger=UserModelMerger(),
+            episode_pipeline=FakeEpisodePipeline(),
+        )
     )
     container = AppContainer(
         recall_service=recall_service,
         memory_search_service=MemorySearchService(user_model_repository),
-        ingest_service=ingest_service,
+        session_ingest_service=session_ingest_service,
         user_model_renderer=UserModelRenderer(),
         enabled_mcp_tools=frozenset({SEARCH_MEMORY_TOOL}),
     )

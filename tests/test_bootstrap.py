@@ -190,7 +190,7 @@ def test_build_app_container_wires_services(
 
     assert container.recall_service is not None
     assert container.memory_search_service is not None
-    assert container.ingest_service is not None
+    assert container.session_ingest_service is not None
     assert container.enabled_mcp_tools == frozenset(DEFAULT_ENABLED_MCP_TOOLS)
 
 

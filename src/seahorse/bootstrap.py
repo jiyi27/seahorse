@@ -4,10 +4,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from seahorse import logger
-from seahorse.application.ingest_service import IngestService
 from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.recall_service import RecallService
+from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_model_merger import UserModelMerger
+from seahorse.application.user_profile_ingest_service import UserProfileIngestService
 from seahorse.application.user_model_renderer import UserModelRenderer
 from seahorse.infrastructure.config import (
     AppPaths,
@@ -31,7 +32,7 @@ from seahorse.infrastructure.repositories.user_model_json import (
 class AppContainer:
     recall_service: RecallService
     memory_search_service: MemorySearchService
-    ingest_service: IngestService
+    session_ingest_service: SessionIngestService
     user_model_renderer: UserModelRenderer
     enabled_mcp_tools: frozenset[str]
 
@@ -65,17 +66,20 @@ def build_app_container(
         user_model_repository=user_model_repository,
         top_k=app_config.memory_search.top_k,
     )
-    ingest_service = IngestService(
+    user_profile_ingest_service = UserProfileIngestService(
         user_model_repository=user_model_repository,
         extractor=extractor,
         merger=UserModelMerger(),
         episode_pipeline=NoopEpisodePipeline(),
     )
+    session_ingest_service = SessionIngestService(
+        user_profile_ingest_service=user_profile_ingest_service
+    )
 
     return AppContainer(
         recall_service=recall_service,
         memory_search_service=memory_search_service,
-        ingest_service=ingest_service,
+        session_ingest_service=session_ingest_service,
         user_model_renderer=user_model_renderer,
         enabled_mcp_tools=frozenset(app_config.mcp.enabled_tools),
     )

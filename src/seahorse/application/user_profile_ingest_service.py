@@ -7,7 +7,7 @@ from seahorse.domain.repositories import UserModelRepository
 from seahorse.domain.services import EpisodePipeline, UserModelExtractor
 
 
-class IngestService:
+class UserProfileIngestService:
     def __init__(
         self,
         user_model_repository: UserModelRepository,
@@ -22,7 +22,7 @@ class IngestService:
 
     def ingest(self, conversation: ConversationInput) -> IngestResult:
         logger.info(
-            "ingest.started",
+            "user_profile_ingest.started",
             {
                 "source": conversation.source,
                 "session_id": conversation.session_id,
@@ -35,7 +35,7 @@ class IngestService:
         merged_user_model = merged.user_model
 
         logger.info(
-            "ingest.patch.applied",
+            "user_profile_ingest.patch.applied",
             {
                 "user_model_updated": merged.changed,
             },
@@ -46,7 +46,7 @@ class IngestService:
         self._episode_pipeline.process(conversation)
 
         logger.info(
-            "ingest.completed",
+            "user_profile_ingest.completed",
             {
                 "user_model_updated": merged.changed,
             },
