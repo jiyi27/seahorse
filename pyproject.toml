@@ -1,7 +1,7 @@
 [project]
 name = "seahorse"
 version = "0.1.0"
-description = "Single-user memory service for agent context recall and profile extraction"
+description = "Single-user memory service for agent systems that supports context recall, profile extraction, and memory search."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

@@ -1,6 +1,6 @@
 ## Seahorse
 
-Seahorse is a single-user memory service for agent systems.
+Seahorse is a single-user memory service for agent systems. It helps agents retain user profile facts, ingest session memory, and search past context over MCP or HTTP.
 
 ## Configuration
 
