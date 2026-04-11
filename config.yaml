@@ -24,8 +24,6 @@ memory_search:
 vector_memory:
   enabled: false
   top_k: 5
-  chunk_min_characters: 240
-  chunk_max_characters: 1200
 
 embedding:
   provider: openai_compatible

@@ -106,6 +106,22 @@ def test_load_app_config_from_yaml_applies_defaults_with_explicit_storage(
     assert config.storage.data_dir == "data"
 
 
+def test_checked_in_config_yaml_is_valid() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+
+    config = load_app_config_from_yaml(project_root / "config.yaml")
+
+    assert isinstance(config, AppConfig)
+
+
+def test_checked_in_config_example_is_valid() -> None:
+    project_root = Path(__file__).resolve().parents[1]
+
+    config = load_app_config_from_yaml(project_root / "config.yaml.example")
+
+    assert isinstance(config, AppConfig)
+
+
 def test_load_app_config_from_yaml_rejects_unsupported_mcp_tool(tmp_path: Path) -> None:
     config_path = tmp_path / DEFAULT_CONFIG_FILE_NAME
     config_path.write_text(

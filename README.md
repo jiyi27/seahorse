@@ -1,86 +1,213 @@
 ## Seahorse
 
-Seahorse is a single-user memory service for agent systems. It helps agents retain user profile facts, ingest session memory, and search past context over MCP or HTTP.
+Seahorse is a single-user memory service for agent systems. It gives an agent a small long-term memory layer for user profile facts, session ingest, and past-context recall over MCP or HTTP.
+
+## What It Does
+
+Seahorse is meant to sit beside an agent runtime and handle memory-specific work that you do not want scattered across the agent loop itself.
+
+Core capabilities:
+
+- Persist stable user facts, preferences, and constraints into a structured user profile
+- Search previously ingested memory when the agent needs recalled context
+- Expose the same memory functions through either MCP tools or plain HTTP endpoints
+- Optionally index session transcripts into Qdrant for vector-backed memory search
+
+Current scope:
+
+- Single-user only
+- Structured JSON profile storage on disk
+- Optional vector memory for session transcript recall
+- HTTP adapter and MCP adapter
+
+Not in scope for the MVP:
+
+- Multi-user tenancy
+- Embeddings-only architecture without structured profile memory
+- LangChain-style orchestration layers across the whole app
+
+## Main Interfaces
+
+Seahorse provides two ways to integrate memory into an agent stack.
+
+### HTTP API
+
+Run with:
+
+```bash
+make run
+```
+
+The HTTP server listens on `127.0.0.1:8081`.
+
+Endpoints:
+
+- `GET /health`: returns service health, including vector-memory health when enabled
+- `GET /user/profile`: returns the current structured user profile
+- `GET /memory/search?query=...`: searches recalled memory for a short natural-language query
+- `POST /memory/sessions`: ingests a conversation turn or message list and updates long-term memory
+
+Minimal ingest example:
+
+```json
+{
+  "session_id": "session-123",
+  "messages": [
+    {"role": "user", "text": "I live in Hangzhou and prefer TypeScript."},
+    {"role": "assistant", "text": "Understood."}
+  ]
+}
+```
+
+### MCP Tools
+
+Run with:
+
+```bash
+make run-mcp
+```
+
+The MCP server runs over stdio and registers these tools:
+
+- `get_user_profile`: returns stable known facts about the user such as background, preferences, and constraints
+- `search_memory`: searches past memory for relevant recalled context from a short natural-language query
+- `ingest_turn`: persists durable facts learned from a conversation turn into long-term memory
+
+`mcp.enabled_tools` can restrict which of these tools are exposed for a given runtime.
 
 ## Configuration
 
-Seahorse uses two configuration sources:
+Seahorse reads configuration from two places:
 
-- `config.yaml` in the project root for non-secret application settings
-- environment variables for secrets only
+- `config.yaml` for non-secret runtime settings
+- environment variables for secrets
+
+Copy [`config.yaml.example`](/Users/david/codes/agent/seahorse/config.yaml.example) to `config.yaml` and adjust the values you need.
 
 Required environment variables:
 
 - `OPENROUTER_API_KEY`
-- `OPENAI_API_KEY` only when `vector_memory.enabled` is true and `embedding.api_key_env`
-  points to that variable
+- `OPENAI_API_KEY` only when `vector_memory.enabled: true` and `embedding.api_key_env: OPENAI_API_KEY`
 
-The default [`config.yaml`](/Users/david/codes/agent/seahorse/config.yaml) covers:
+Startup is fail-fast. Seahorse exits during bootstrap if required settings, secrets, or prompt files are missing or invalid.
 
-- provider name, model, and timeout
-- log directory and log level
-- MCP tool registration
-- memory search defaults such as configured result count
-- storage directory for user memory
-- optional vector-memory settings, embedding settings, and Qdrant connection settings
+### Config Modules
 
-Secrets are not read from `.env` files. Export `OPENROUTER_API_KEY` in the shell or process environment before startup. Copy [`config.yaml.example`](/Users/david/codes/agent/seahorse/config.yaml.example) to `config.yaml` if you want to start from the documented template.
+#### `provider`
 
-`storage` is required in `config.yaml`. Seahorse expects `storage.data_dir` to be written explicitly so the memory location is always visible in the checked-in config.
+Controls the LLM used for user-profile extraction.
 
-`mcp.enabled_tools` is optional. Use it when you want Seahorse to register only a subset of tools for a given agent. If omitted, Seahorse registers `get_user_profile`, `search_memory`, and `ingest_turn`.
+- `name`: provider name, currently `openrouter`
+- `model`: extraction model name
+- `timeout_seconds`: request timeout for the provider
 
-`memory_search.top_k` is optional. It controls how many results `search_memory` returns. This stays in server config rather than the tool schema so the agent only supplies the recall query, not retrieval tuning knobs.
+#### `logger`
 
-Startup is fail-fast. Seahorse exits during bootstrap if:
+Controls runtime logging.
 
-- `OPENROUTER_API_KEY` is missing
-- the configured provider requires fields that are not set
-- vector memory is enabled but embedding or Qdrant settings are incomplete
-- the prompt file is missing
-- the YAML structure or field values are invalid
+- `log_dir`: directory for log files
+- `log_level`: one of `debug`, `info`, `warning`, `error`
 
-The persisted user model is stored as structured JSON in `storage.data_dir/user_model.json`.
+#### `storage`
 
-## Vector Memory
+Controls on-disk persisted memory.
 
-Seahorse now supports optional transcript vector indexing backed by Qdrant.
+- `data_dir`: required storage directory, resolved relative to the project root when not absolute
 
-When `vector_memory.enabled` is true:
+Structured user profile data is persisted at `storage.data_dir/user_model.json`.
 
-- `/memory/sessions` still updates the user profile
-- the same ingest call also chunks the conversation and writes vector memory
-- `/memory/search` prefers vector search first
-- `/health` reports embedding and Qdrant status
+#### `mcp`
 
-For a local setup and verification guide, see
-[docs/vector-memory-runbook.md](/Users/david/codes/agent/seahorse/docs/vector-memory-runbook.md).
+Controls MCP tool registration.
 
-## Current Scope
+- `enabled_tools`: optional allowlist of exposed tools
 
-The current skeleton implements Phase 1 from [docs/architecture_v2.md](/Users/david/codes/agent/seahorse/docs/architecture_v2.md):
+Supported tool names:
 
-1. Domain models and protocols
-2. Application services for ingest and recall
-3. A deterministic user-model merger
-4. Structured JSON storage for `user_model`
-5. A lightweight provider and LLM extractor boundary
-6. Bootstrap wiring for services and tool adapters
-7. MCP and HTTP transport adapters
-8. Minimal unit tests
+- `get_user_profile`
+- `search_memory`
+- `ingest_turn`
 
-Future phases will add transport adapters and runtime integration.
+#### `memory_search`
 
-## Common Commands
+Controls generic recall behavior.
 
-The repository includes a small `Makefile` for common workflows:
+- `top_k`: how many recalled results `search_memory` returns
 
-- `make sync` installs dependencies with `uv`
-- `make test` runs the test suite
-- `make run` starts the HTTP server on `127.0.0.1:8081`
-- `make run-mcp` starts the Seahorse MCP server over stdio for manual debugging
+#### `vector_memory`
+
+Controls optional transcript vector indexing.
+
+- `enabled`: enables Qdrant-backed vector memory
+- `top_k`: how many vector hits are returned during vector-backed recall
+
+When disabled, Seahorse still keeps the structured user profile memory and skips transcript vector indexing.
+
+#### `embedding`
+
+Controls the embedding model used for vector memory.
+
+Required only when `vector_memory.enabled` is `true`.
+
+- `provider`: embedding provider, currently `openai_compatible`
+- `model`: embedding model name
+- `base_url`: embedding API base URL
+- `api_key_env`: environment variable name that stores the embedding API key
+- `timeout_seconds`: embedding request timeout
+
+#### `qdrant`
+
+Controls the vector store connection.
+
+Required only when `vector_memory.enabled` is `true`.
+
+- `url`: Qdrant server URL
+- `collection_name`: Qdrant collection name
+
+## Quick Start
+
+Install dependencies:
+
+```bash
+make sync
+```
+
+Run tests:
+
+```bash
+make test
+```
+
+Start HTTP:
+
+```bash
+make run
+```
+
+Start MCP:
+
+```bash
+make run-mcp
+```
 
 You can also run the packaged entrypoints directly:
 
-- `uv run seahorse-http` starts the HTTP server on `127.0.0.1:8081`
-- `uv run seahorse-mcp` starts the MCP server over stdio
+- `uv run seahorse-http`
+- `uv run seahorse-mcp`
+
+## Project Layout
+
+The codebase is organized by layer:
+
+- `src/seahorse/domain`: core models and repository or service interfaces
+- `src/seahorse/application`: orchestration and merge logic
+- `src/seahorse/infrastructure`: config loading, repositories, providers, extractors, vector integrations
+- `src/seahorse/api`: HTTP and MCP transport adapters
+- `src/seahorse/prompts`: prompt templates used by extraction flows
+- `tests`: wiring, regression, and adapter tests
+
+## Notes
+
+- Seahorse is designed as a focused memory component, not a full agent framework.
+- Structured profile memory and vector memory are complementary here: profile memory stores durable facts, while vector memory helps recall prior session context.
+- For tool wording guidance and memory-tool design notes, see [docs/tool-design.md](/Users/david/codes/agent/seahorse/docs/tool-design.md) and [docs/session-vector-memory-design.md](/Users/david/codes/agent/seahorse/docs/session-vector-memory-design.md).

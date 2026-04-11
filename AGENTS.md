@@ -9,17 +9,17 @@ This file is written for coding agents working in this repository. Follow these 
 
 ## Structure
 
-- `src/seahorse/domain/`: domain models and interfaces only.
-- `src/seahorse/application/`: orchestration and merge logic.
-- `src/seahorse/infrastructure/`: config, repositories, provider, extractor.
-- `src/seahorse/api/`: MCP and HTTP adapters only.
-- `src/seahorse/prompts/`: prompt templates.
-- `tests/`: regression and wiring tests.
-- `docs/tool-design.md`: current checked-in design reference.
+The codebase is organized by layer:
+
+- `src/seahorse/domain`: core models and repository or service interfaces
+- `src/seahorse/application`: orchestration and merge logic
+- `src/seahorse/infrastructure`: config loading, repositories, providers, extractors, vector integrations
+- `src/seahorse/api`: HTTP and MCP transport adapters
+- `src/seahorse/prompts`: prompt templates used by extraction flows
+- `tests`: wiring, regression, and adapter tests
 
 ## Config
 
-- Validate all configuration, paths, and secrets eagerly in `build_app_container()` before any service is constructed. A missing file or bad value must fail at startup with a clear error, never silently at request time.
 - Prefer explicit values in `config.yaml` over code defaults for anything that affects operational behavior. Code defaults are acceptable only for genuinely optional or low-stakes settings.
 - Keep each config section as its own Pydantic model with its own field validators. Do not merge unrelated config into one model.
 

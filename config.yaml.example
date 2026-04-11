@@ -43,12 +43,6 @@ vector_memory:
   # Optional. Controls vector recall result count once retrieval is added.
   # Default: 5
   top_k: 5
-  # Optional. Controls how short blocks are merged before embedding.
-  # Default: 240
-  chunk_min_characters: 240
-  # Optional. Controls the largest chunk size before a new chunk is started.
-  # Default: 1200
-  chunk_max_characters: 1200
 
 embedding:
   # Required when vector_memory.enabled is true.
