@@ -29,3 +29,9 @@ class PreparedConversationChunk(BaseModel):
     chunk: ConversationChunk
     text_for_embedding: str
     payload: dict[str, Any]
+
+
+class PreparedVectorRecord(BaseModel):
+    record_id: str
+    text_for_embedding: str
+    payload: dict[str, Any]

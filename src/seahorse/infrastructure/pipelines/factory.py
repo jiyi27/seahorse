@@ -42,8 +42,6 @@ def build_conversation_vector_pipeline(
     return QdrantConversationVectorPipeline(
         embedding_model=embedding_model,
         vector_store=vector_store,
-        chunk_min_characters=app_config.vector_memory.chunk_min_characters,
-        chunk_max_characters=app_config.vector_memory.chunk_max_characters,
     )
 
 

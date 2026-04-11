@@ -27,10 +27,13 @@ class VectorSearchService:
         )
 
         results: list[MemorySearchResultItem] = []
+        seen_result_ids: set[str] = set()
         for payload in payloads:
             rendered = render_vector_search_result(payload)
-            if rendered is not None:
-                results.append(rendered)
+            if rendered is None or rendered.id in seen_result_ids:
+                continue
+            seen_result_ids.add(rendered.id)
+            results.append(rendered)
 
         logger.debug("vector_search.completed", {"result_count": len(results)})
         return results

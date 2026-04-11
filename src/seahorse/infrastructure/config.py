@@ -15,10 +15,6 @@ from pydantic import (
 )
 
 from seahorse.constants import OPENROUTER_PROVIDER
-from seahorse.ingest.constants import (
-    DEFAULT_MAX_CHUNK_CHARACTERS,
-    DEFAULT_MIN_CHUNK_CHARACTERS,
-)
 from seahorse.tools.tool_names import ALL_TOOL_NAMES
 
 DEFAULT_CONFIG_FILE_NAME = "config.yaml"
@@ -168,28 +164,12 @@ class VectorMemoryConfig(BaseModel):
 
     enabled: bool = DEFAULT_VECTOR_MEMORY_ENABLED
     top_k: int = DEFAULT_VECTOR_MEMORY_TOP_K
-    chunk_min_characters: int = DEFAULT_MIN_CHUNK_CHARACTERS
-    chunk_max_characters: int = DEFAULT_MAX_CHUNK_CHARACTERS
 
     @field_validator("top_k")
     @classmethod
     def validate_top_k(cls, value: int) -> int:
         if value <= 0:
             raise ValueError("vector_memory.top_k must be greater than 0")
-        return value
-
-    @field_validator("chunk_min_characters")
-    @classmethod
-    def validate_chunk_min_characters(cls, value: int) -> int:
-        if value <= 0:
-            raise ValueError("vector_memory.chunk_min_characters must be greater than 0")
-        return value
-
-    @field_validator("chunk_max_characters")
-    @classmethod
-    def validate_chunk_max_characters(cls, value: int) -> int:
-        if value <= 0:
-            raise ValueError("vector_memory.chunk_max_characters must be greater than 0")
         return value
 
 
@@ -270,15 +250,6 @@ class AppConfig(BaseModel):
     def validate_vector_memory_requirements(self) -> "AppConfig":
         if not self.vector_memory.enabled:
             return self
-
-        if (
-            self.vector_memory.chunk_min_characters
-            > self.vector_memory.chunk_max_characters
-        ):
-            raise ValueError(
-                "vector_memory.chunk_min_characters must be less than or equal to "
-                "vector_memory.chunk_max_characters"
-            )
         if not self.embedding.model:
             raise ValueError(
                 "embedding.model is required when vector_memory.enabled is true"

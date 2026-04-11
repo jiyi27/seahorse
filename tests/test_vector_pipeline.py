@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from seahorse.domain.models import ConversationInput, Message
+from seahorse.ingest.vector_fields import CONTENT, EMBEDDING_TEXT, PARENT_BLOCK_ID
 from seahorse.infrastructure.pipelines.qdrant_conversation_vector_pipeline import (
     QdrantConversationVectorPipeline,
 )
@@ -29,8 +30,6 @@ def test_qdrant_conversation_vector_pipeline_embeds_clean_text_and_stores_payloa
     pipeline = QdrantConversationVectorPipeline(
         embedding_model=embedding_model,
         vector_store=vector_store,
-        chunk_min_characters=1,
-        chunk_max_characters=1000,
     )
 
     pipeline.process(
@@ -46,19 +45,19 @@ def test_qdrant_conversation_vector_pipeline_embeds_clean_text_and_stores_payloa
         )
     )
 
-    assert embedding_model.calls == [
-        [
-            "[user]\nremember i prefer concise answers\n\n[assistant]\nnoted",
-        ]
-    ]
+    assert embedding_model.calls == [["remember i prefer concise answers", "noted"]]
     assert len(vector_store.calls) == 1
     prepared_chunks, vectors = vector_store.calls[0]
-    assert vectors == [[0.1, 0.2]]
-    assert prepared_chunks[0].payload["messages"] == [
-        {"role": "user", "text": "remember i prefer concise answers"},
-        {"role": "assistant", "text": "noted"},
-        {"role": "tool", "text": '{"status":"stored"}'},
-    ]
+    assert vectors == [[0.1, 0.2], [0.1, 0.2]]
+    assert len(prepared_chunks) == 2
+    assert prepared_chunks[0].payload[PARENT_BLOCK_ID] == prepared_chunks[1].payload[PARENT_BLOCK_ID]
+    assert prepared_chunks[0].payload[EMBEDDING_TEXT] == "remember i prefer concise answers"
+    assert prepared_chunks[1].payload[EMBEDDING_TEXT] == "noted"
+    assert prepared_chunks[0].payload[CONTENT] == (
+        "[user]\nremember i prefer concise answers\n\n"
+        "[assistant]\nnoted\n\n"
+        '[tool]\n{"status":"stored"}'
+    )
 
 
 def test_qdrant_conversation_vector_pipeline_skips_chunks_without_embedding_text() -> None:
@@ -67,8 +66,6 @@ def test_qdrant_conversation_vector_pipeline_skips_chunks_without_embedding_text
     pipeline = QdrantConversationVectorPipeline(
         embedding_model=embedding_model,
         vector_store=vector_store,
-        chunk_min_characters=1,
-        chunk_max_characters=1000,
     )
 
     pipeline.process(

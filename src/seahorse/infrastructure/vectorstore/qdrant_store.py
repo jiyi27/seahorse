@@ -4,7 +4,7 @@ import threading
 from dataclasses import dataclass
 
 from seahorse import logger
-from seahorse.ingest.models import PreparedConversationChunk
+from seahorse.ingest.models import PreparedVectorRecord
 
 
 @dataclass(frozen=True)
@@ -20,7 +20,7 @@ class QdrantConversationVectorStore:
 
     def upsert_chunks(
         self,
-        chunks: list[PreparedConversationChunk],
+        chunks: list[PreparedVectorRecord],
         vectors: list[list[float]],
     ) -> None:
         if not chunks:
@@ -40,10 +40,9 @@ class QdrantConversationVectorStore:
 
         points = [
             PointStruct(
-                id=prepared.chunk.chunk_id,
+                id=prepared.record_id,
                 vector=vector,
-                payload=prepared.payload
-                | {"text_for_embedding": prepared.text_for_embedding},
+                payload=prepared.payload,
             )
             for prepared, vector in zip(chunks, vectors, strict=True)
         ]

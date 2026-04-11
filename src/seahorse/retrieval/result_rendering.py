@@ -1,21 +1,20 @@
 from __future__ import annotations
 
 from seahorse.domain.models import MemorySearchResultItem
+from seahorse.ingest.vector_fields import CONTENT, PARENT_BLOCK_ID
 
 
 def render_vector_search_result(payload: dict[str, object]) -> MemorySearchResultItem | None:
-    chunk_id = payload.get("chunk_id")
-    if not isinstance(chunk_id, str) or not chunk_id:
+    parent_block_id = payload.get(PARENT_BLOCK_ID)
+    if not isinstance(parent_block_id, str) or not parent_block_id:
         return None
 
-    assistant_text = _normalize_text(payload.get("assistant_text"))
-    user_text = _normalize_text(payload.get("user_text"))
-    text = assistant_text or user_text
+    text = _normalize_text(payload.get(CONTENT))
     if not text:
         return None
 
     return MemorySearchResultItem(
-        id=chunk_id,
+        id=parent_block_id,
         source_type="conversation",
         text=text,
     )

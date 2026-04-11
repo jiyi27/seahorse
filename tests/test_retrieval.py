@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from seahorse.domain.models import MemorySearchResultItem
+from seahorse.ingest.vector_fields import CONTENT, PARENT_BLOCK_ID
 from seahorse.retrieval.result_rendering import render_vector_search_result
 from seahorse.retrieval.vector_search_service import VectorSearchService
 
@@ -24,31 +25,33 @@ class FakeVectorStore:
         return self.payloads
 
 
-def test_render_vector_search_result_uses_assistant_text_first() -> None:
+def test_render_vector_search_result_uses_parent_content() -> None:
     result = render_vector_search_result(
         {
-            "chunk_id": "chunk-1",
-            "assistant_text": "We discussed adding vector memory.",
-            "user_text": "I want memory.",
+            PARENT_BLOCK_ID: "block-1",
+            CONTENT: "[user]\nI want memory.\n\n[assistant]\nWe discussed adding vector memory.",
         }
     )
 
     assert result == MemorySearchResultItem(
-        id="chunk-1",
+        id="block-1",
         source_type="conversation",
-        text="We discussed adding vector memory.",
+        text="[user]\nI want memory.\n\n[assistant]\nWe discussed adding vector memory.",
     )
 
 
-def test_vector_search_service_embeds_query_and_renders_results() -> None:
+def test_vector_search_service_embeds_query_dedupes_by_parent_block() -> None:
     embedding_model = FakeEmbeddingModel()
     vector_store = FakeVectorStore(
         [
             {
-                "chunk_id": "chunk-1",
-                "assistant_text": "We discussed adding vector memory.",
-                "user_text": "I want memory.",
-            }
+                PARENT_BLOCK_ID: "block-1",
+                CONTENT: "[user]\nI want memory.\n\n[assistant]\nWe discussed adding vector memory.",
+            },
+            {
+                PARENT_BLOCK_ID: "block-1",
+                CONTENT: "[user]\nI want memory.\n\n[assistant]\nWe discussed adding vector memory.",
+            },
         ]
     )
     service = VectorSearchService(embedding_model, vector_store, top_k=5)
@@ -59,8 +62,8 @@ def test_vector_search_service_embeds_query_and_renders_results() -> None:
     assert vector_store.calls == [([0.3, 0.4], 5)]
     assert results == [
         MemorySearchResultItem(
-            id="chunk-1",
+            id="block-1",
             source_type="conversation",
-            text="We discussed adding vector memory.",
+            text="[user]\nI want memory.\n\n[assistant]\nWe discussed adding vector memory.",
         )
     ]
