@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from seahorse.domain.models import MemorySearchResultItem
 from seahorse.ingest.vector_fields import CONTENT, PARENT_BLOCK_ID
+from seahorse.retrieval.conversation_recall import (
+    ConversationParentHit,
+    build_conversation_search_results,
+    dedupe_conversation_parent_hits,
+    render_conversation_parent_hit,
+)
 from seahorse.retrieval.result_rendering import render_vector_search_result
 from seahorse.retrieval.vector_search_service import VectorSearchService
 
@@ -23,6 +29,38 @@ class FakeVectorStore:
     def search_chunks(self, *, query_vector: list[float], limit: int) -> list[dict[str, object]]:
         self.calls.append((query_vector, limit))
         return self.payloads
+
+
+def test_render_conversation_parent_hit_requires_parent_id_and_content() -> None:
+    assert render_conversation_parent_hit({PARENT_BLOCK_ID: "block-1"}) is None
+    assert render_conversation_parent_hit({CONTENT: "text"}) is None
+
+
+def test_dedupe_conversation_parent_hits_keeps_first_hit_per_parent() -> None:
+    deduped_hits = dedupe_conversation_parent_hits(
+        [
+            ConversationParentHit(parent_block_id="block-1", content="first"),
+            ConversationParentHit(parent_block_id="block-1", content="second"),
+            ConversationParentHit(parent_block_id="block-2", content="third"),
+        ]
+    )
+
+    assert deduped_hits == [
+        ConversationParentHit(parent_block_id="block-1", content="first"),
+        ConversationParentHit(parent_block_id="block-2", content="third"),
+    ]
+
+
+def test_build_conversation_search_results_maps_hits_to_memory_results() -> None:
+    assert build_conversation_search_results(
+        [ConversationParentHit(parent_block_id="block-1", content="block text")]
+    ) == [
+        MemorySearchResultItem(
+            id="block-1",
+            source_type="conversation",
+            text="block text",
+        )
+    ]
 
 
 def test_render_vector_search_result_uses_parent_content() -> None:

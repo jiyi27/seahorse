@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from seahorse import logger
 from seahorse.domain.models import MemorySearchResultItem
-from seahorse.retrieval.result_rendering import render_vector_search_result
+from seahorse.retrieval.conversation_recall import (
+    build_conversation_search_results,
+    dedupe_conversation_parent_hits,
+    render_conversation_parent_hit,
+)
 
 
 class VectorSearchService:
@@ -26,14 +30,24 @@ class VectorSearchService:
             limit=self._top_k,
         )
 
-        results: list[MemorySearchResultItem] = []
-        seen_result_ids: set[str] = set()
+        parent_hits = []
         for payload in payloads:
-            rendered = render_vector_search_result(payload)
-            if rendered is None or rendered.id in seen_result_ids:
+            parent_hit = render_conversation_parent_hit(payload)
+            if parent_hit is None:
                 continue
-            seen_result_ids.add(rendered.id)
-            results.append(rendered)
+            parent_hits.append(parent_hit)
 
-        logger.debug("vector_search.completed", {"result_count": len(results)})
+        deduped_parent_hits = dedupe_conversation_parent_hits(parent_hits)
+        results: list[MemorySearchResultItem] = build_conversation_search_results(
+            deduped_parent_hits
+        )
+
+        logger.debug(
+            "vector_search.completed",
+            {
+                "result_count": len(results),
+                "payload_count": len(payloads),
+                "parent_hit_count": len(parent_hits),
+            },
+        )
         return results

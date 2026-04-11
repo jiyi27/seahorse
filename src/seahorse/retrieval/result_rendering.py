@@ -1,26 +1,15 @@
 from __future__ import annotations
 
 from seahorse.domain.models import MemorySearchResultItem
-from seahorse.ingest.vector_fields import CONTENT, PARENT_BLOCK_ID
+from seahorse.retrieval.conversation_recall import (
+    build_conversation_search_results,
+    render_conversation_parent_hit,
+)
 
 
 def render_vector_search_result(payload: dict[str, object]) -> MemorySearchResultItem | None:
-    parent_block_id = payload.get(PARENT_BLOCK_ID)
-    if not isinstance(parent_block_id, str) or not parent_block_id:
+    parent_hit = render_conversation_parent_hit(payload)
+    if parent_hit is None:
         return None
 
-    text = _normalize_text(payload.get(CONTENT))
-    if not text:
-        return None
-
-    return MemorySearchResultItem(
-        id=parent_block_id,
-        source_type="conversation",
-        text=text,
-    )
-
-
-def _normalize_text(value: object) -> str:
-    if not isinstance(value, str):
-        return ""
-    return value.strip()
+    return build_conversation_search_results([parent_hit])[0]
