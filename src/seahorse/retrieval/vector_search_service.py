@@ -46,8 +46,8 @@ class VectorSearchService:
             "vector_search.completed",
             {
                 "result_count": len(results),
-                "payload_count": len(payloads),
-                "parent_hit_count": len(parent_hits),
+                "child_hit_count": len(parent_hits),
+                "parent_result_count": len(deduped_parent_hits),
             },
         )
         return results
