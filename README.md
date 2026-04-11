@@ -12,6 +12,8 @@ Seahorse uses two configuration sources:
 Required environment variables:
 
 - `OPENROUTER_API_KEY`
+- `OPENAI_API_KEY` only when `vector_memory.enabled` is true and `embedding.api_key_env`
+  points to that variable
 
 The default [`config.yaml`](/Users/david/codes/agent/seahorse/config.yaml) covers:
 
@@ -20,6 +22,7 @@ The default [`config.yaml`](/Users/david/codes/agent/seahorse/config.yaml) cover
 - MCP tool registration
 - memory search defaults such as configured result count
 - storage directory for user memory
+- optional vector-memory settings, embedding settings, and Qdrant connection settings
 
 Secrets are not read from `.env` files. Export `OPENROUTER_API_KEY` in the shell or process environment before startup. Copy [`config.yaml.example`](/Users/david/codes/agent/seahorse/config.yaml.example) to `config.yaml` if you want to start from the documented template.
 
@@ -33,10 +36,25 @@ Startup is fail-fast. Seahorse exits during bootstrap if:
 
 - `OPENROUTER_API_KEY` is missing
 - the configured provider requires fields that are not set
+- vector memory is enabled but embedding or Qdrant settings are incomplete
 - the prompt file is missing
 - the YAML structure or field values are invalid
 
 The persisted user model is stored as structured JSON in `storage.data_dir/user_model.json`.
+
+## Vector Memory
+
+Seahorse now supports optional transcript vector indexing backed by Qdrant.
+
+When `vector_memory.enabled` is true:
+
+- `/memory/sessions` still updates the user profile
+- the same ingest call also chunks the conversation and writes vector memory
+- `/memory/search` prefers vector search first
+- `/health` reports embedding and Qdrant status
+
+For a local setup and verification guide, see
+[docs/vector-memory-runbook.md](/Users/david/codes/agent/seahorse/docs/vector-memory-runbook.md).
 
 ## Current Scope
 

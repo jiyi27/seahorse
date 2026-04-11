@@ -18,7 +18,6 @@ from seahorse.infrastructure.config import (
     DEFAULT_CONFIG_FILE_NAME,
     load_app_config_from_yaml,
     load_secrets_from_env,
-    validate_vector_memory_config,
     validate_app_paths,
 )
 from seahorse.infrastructure.extractors.llm_user_model_extractor import (
@@ -45,33 +44,33 @@ class AppContainer:
     enabled_mcp_tools: frozenset[str]
 
 
-def build_app_container(
-    project_root: Path, config_path: Path | None = None
-) -> AppContainer:
-    resolved_config_path = config_path or project_root / DEFAULT_CONFIG_FILE_NAME
-    app_config = load_app_config_from_yaml(resolved_config_path)
-    validate_vector_memory_config(app_config)
-    secrets = load_secrets_from_env(app_config)
-    paths = AppPaths.from_config(project_root, app_config)
-    validate_app_paths(paths)
-
+def _configure_logging(project_root: Path, app_config) -> None:
     log_dir = Path(app_config.logger.log_dir)
     if not log_dir.is_absolute():
         log_dir = project_root / log_dir
     logger.configure(log_dir=log_dir, level=app_config.logger.log_level)
     logger.info("seahorse.startup", {"project_root": str(project_root)})
-    provider_settings = build_provider_settings(app_config.provider, secrets)
 
-    user_model_repository = JSONUserModelRepository(paths.storage.user_model_path)
+
+def _build_user_profile_ingest_service(
+    paths: AppPaths,
+    provider_settings,
+    user_model_repository: JSONUserModelRepository,
+) -> UserProfileIngestService:
     provider = build_llm_provider(provider_settings)
     extractor = LLMUserModelExtractor(
         provider=provider,
         prompt_path=paths.user_model_extraction_prompt_path,
     )
-    user_model_renderer = UserModelRenderer()
-    vector_search_dependencies = build_vector_search_dependencies(app_config, secrets)
+    return UserProfileIngestService(
+        user_model_repository=user_model_repository,
+        extractor=extractor,
+        merger=UserModelMerger(),
+    )
 
-    recall_service = RecallService(user_model_repository=user_model_repository)
+
+def _build_health_service(app_config, secrets) -> HealthService:
+    vector_search_dependencies = build_vector_search_dependencies(app_config, secrets)
     vector_health_service = (
         None
         if vector_search_dependencies is None
@@ -80,31 +79,74 @@ def build_app_container(
             vector_search_dependencies[1],
         )
     )
-    health_service = HealthService(vector_health_service=vector_health_service)
-    memory_search_service = MemorySearchService(
+    return HealthService(vector_health_service=vector_health_service)
+
+
+def _build_memory_search_service(
+    app_config,
+    secrets,
+    user_model_repository: JSONUserModelRepository,
+) -> MemorySearchService:
+    vector_search_dependencies = build_vector_search_dependencies(app_config, secrets)
+    vector_search_service = (
+        None
+        if vector_search_dependencies is None
+        else VectorSearchService(
+            vector_search_dependencies[0],
+            vector_search_dependencies[1],
+            top_k=app_config.vector_memory.top_k,
+        )
+    )
+    return MemorySearchService(
         user_model_repository=user_model_repository,
         top_k=app_config.memory_search.top_k,
-        vector_search_service=(
-            None
-            if vector_search_dependencies is None
-            else VectorSearchService(
-                vector_search_dependencies[0],
-                vector_search_dependencies[1],
-                top_k=app_config.vector_memory.top_k,
-            )
-        ),
+        vector_search_service=vector_search_service,
     )
-    user_profile_ingest_service = UserProfileIngestService(
-        user_model_repository=user_model_repository,
-        extractor=extractor,
-        merger=UserModelMerger(),
-    )
-    session_ingest_service = SessionIngestService(
+
+
+def _build_session_ingest_service(
+    app_config,
+    secrets,
+    user_profile_ingest_service: UserProfileIngestService,
+) -> SessionIngestService:
+    return SessionIngestService(
         user_profile_ingest_service=user_profile_ingest_service,
         conversation_vector_pipeline=build_conversation_vector_pipeline(
             app_config,
             secrets,
         ),
+    )
+
+
+def build_app_container(
+    project_root: Path, config_path: Path | None = None
+) -> AppContainer:
+    resolved_config_path = config_path or project_root / DEFAULT_CONFIG_FILE_NAME
+    app_config = load_app_config_from_yaml(resolved_config_path)
+    secrets = load_secrets_from_env(app_config)
+    paths = AppPaths.from_config(project_root, app_config)
+    validate_app_paths(paths)
+    _configure_logging(project_root, app_config)
+
+    provider_settings = build_provider_settings(app_config.provider, secrets)
+    user_model_repository = JSONUserModelRepository(paths.storage.user_model_path)
+    user_model_renderer = UserModelRenderer()
+    user_profile_ingest_service = _build_user_profile_ingest_service(
+        paths,
+        provider_settings,
+        user_model_repository,
+    )
+    recall_service = RecallService(user_model_repository=user_model_repository)
+    health_service = _build_health_service(app_config, secrets)
+    memory_search_service = _build_memory_search_service(
+        app_config,
+        secrets,
+        user_model_repository,
+    )
+    session_ingest_service = _build_session_ingest_service(
+        app_config,
+        secrets,
+        user_profile_ingest_service,
     )
 
     return AppContainer(

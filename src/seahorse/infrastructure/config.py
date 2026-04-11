@@ -3,10 +3,16 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 import yaml
-from pydantic import BaseModel, ConfigDict, ValidationError, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from seahorse.constants import OPENROUTER_PROVIDER
 from seahorse.ingest.constants import (
@@ -32,7 +38,7 @@ USER_MODEL_EXTRACTION_PROMPT_FILE_NAME = "user_model_extraction.md"
 DEFAULT_ENABLED_MCP_TOOLS = tuple(sorted(ALL_TOOL_NAMES))
 
 
-def _raise_config_error(message: str, *, cause: Exception | None = None) -> None:
+def _raise_config_error(message: str, *, cause: Exception | None = None) -> NoReturn:
     if cause is None:
         raise RuntimeError(message)
     raise RuntimeError(message) from cause
@@ -260,6 +266,37 @@ class AppConfig(BaseModel):
     qdrant: QdrantConfig = QdrantConfig()
     storage: StorageConfig
 
+    @model_validator(mode="after")
+    def validate_vector_memory_requirements(self) -> "AppConfig":
+        if not self.vector_memory.enabled:
+            return self
+
+        if (
+            self.vector_memory.chunk_min_characters
+            > self.vector_memory.chunk_max_characters
+        ):
+            raise ValueError(
+                "vector_memory.chunk_min_characters must be less than or equal to "
+                "vector_memory.chunk_max_characters"
+            )
+        if not self.embedding.model:
+            raise ValueError(
+                "embedding.model is required when vector_memory.enabled is true"
+            )
+        if not self.embedding.base_url:
+            raise ValueError(
+                "embedding.base_url is required when vector_memory.enabled is true"
+            )
+        if not self.embedding.api_key_env:
+            raise ValueError(
+                "embedding.api_key_env is required when vector_memory.enabled is true"
+            )
+        if not self.qdrant.url:
+            raise ValueError(
+                "qdrant.url is required when vector_memory.enabled is true"
+            )
+        return self
+
 
 @dataclass(frozen=True)
 class SecretSettings:
@@ -359,31 +396,4 @@ def validate_app_paths(paths: AppPaths) -> None:
         _raise_config_error(
             "Missing required prompt file: "
             f"{paths.user_model_extraction_prompt_path}"
-        )
-
-
-def validate_vector_memory_config(app_config: AppConfig) -> None:
-    if not app_config.vector_memory.enabled:
-        return
-
-    if app_config.vector_memory.chunk_min_characters > app_config.vector_memory.chunk_max_characters:
-        _raise_config_error(
-            "vector_memory.chunk_min_characters must be less than or equal to "
-            "vector_memory.chunk_max_characters"
-        )
-    if not app_config.embedding.model:
-        _raise_config_error(
-            "embedding.model is required when vector_memory.enabled is true"
-        )
-    if not app_config.embedding.base_url:
-        _raise_config_error(
-            "embedding.base_url is required when vector_memory.enabled is true"
-        )
-    if not app_config.embedding.api_key_env:
-        _raise_config_error(
-            "embedding.api_key_env is required when vector_memory.enabled is true"
-        )
-    if not app_config.qdrant.url:
-        _raise_config_error(
-            "qdrant.url is required when vector_memory.enabled is true"
         )

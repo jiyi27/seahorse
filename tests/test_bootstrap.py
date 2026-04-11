@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from seahorse.bootstrap import build_app_container
 from seahorse.constants import APP_NAME, OPENROUTER_BASE_URL, OPENROUTER_PROVIDER
@@ -138,6 +139,21 @@ def test_load_app_config_from_yaml_rejects_invalid_memory_search_top_k(
 
     with pytest.raises(RuntimeError, match="memory_search.top_k"):
         load_app_config_from_yaml(config_path)
+
+
+def test_app_config_requires_qdrant_when_vector_memory_enabled() -> None:
+    with pytest.raises(ValidationError, match="qdrant.url"):
+        AppConfig.model_validate(
+            {
+                "storage": {"data_dir": "data"},
+                "vector_memory": {"enabled": True},
+                "embedding": {
+                    "model": "text-embedding-3-small",
+                    "base_url": "https://api.openai.com/v1",
+                    "api_key_env": "OPENAI_API_KEY",
+                },
+            }
+        )
 
 
 def test_app_paths_resolve_expected_locations(tmp_path: Path) -> None:
