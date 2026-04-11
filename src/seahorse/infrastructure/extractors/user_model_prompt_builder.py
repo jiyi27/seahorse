@@ -52,6 +52,8 @@ class UserModelPromptBuilder:
             return conversation.content.strip()
         rendered_messages: list[str] = []
         for message in conversation.messages:
+            if message.role != "user":
+                continue
             rendered_messages.append(self._render_message(message))
         return "\n".join(rendered_messages).strip()
 

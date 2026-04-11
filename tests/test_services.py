@@ -36,6 +36,7 @@ class FakeExtractor:
     def __init__(self, patch: UserModelPatch) -> None:
         self.patch = patch
         self.calls = 0
+        self.last_conversation: ConversationInput | None = None
 
     def extract(
         self,
@@ -43,6 +44,7 @@ class FakeExtractor:
         current_user_model: UserModel | None,
     ) -> UserModelPatch:
         self.calls += 1
+        self.last_conversation = conversation
         return self.patch
 
 
@@ -219,6 +221,56 @@ def test_user_profile_ingest_service_reports_no_update_for_empty_initial_patch()
     )
 
     assert result.user_model_updated is False
+    assert len(user_model_repo.saved) == 0
+
+
+def test_user_profile_ingest_service_ignores_non_user_messages() -> None:
+    user_model_repo = FakeUserModelRepository()
+    extractor = FakeExtractor(
+        UserModelPatch(preferences_to_add=["Concise answers"])
+    )
+    service = UserProfileIngestService(
+        user_model_repository=user_model_repo,
+        extractor=extractor,
+        merger=UserModelMerger(),
+    )
+
+    result = service.ingest(
+        ConversationInput(
+            source="mcp",
+            messages=[
+                Message(role="assistant", text="How should I respond?"),
+                Message(role="user", text="Answer concisely."),
+                Message(role="tool", text="metadata"),
+            ],
+        )
+    )
+
+    assert result.user_model_updated is True
+    assert extractor.calls == 1
+    assert extractor.last_conversation.messages == [
+        Message(role="user", text="Answer concisely.")
+    ]
+
+
+def test_user_profile_ingest_service_skips_extractor_without_user_messages() -> None:
+    user_model_repo = FakeUserModelRepository()
+    extractor = FakeExtractor(UserModelPatch(preferences_to_add=["Concise answers"]))
+    service = UserProfileIngestService(
+        user_model_repository=user_model_repo,
+        extractor=extractor,
+        merger=UserModelMerger(),
+    )
+
+    result = service.ingest(
+        ConversationInput(
+            source="mcp",
+            messages=[Message(role="assistant", text="How should I respond?")],
+        )
+    )
+
+    assert result.user_model_updated is False
+    assert extractor.calls == 0
     assert len(user_model_repo.saved) == 0
 
 

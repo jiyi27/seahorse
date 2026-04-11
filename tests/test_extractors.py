@@ -73,6 +73,35 @@ def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Pa
     assert "I use Python." in provider.last_user_prompt
 
 
+def test_llm_user_model_extractor_prompt_uses_user_messages_only(tmp_path: Path) -> None:
+    prompt_path = tmp_path / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
+    prompt_path.write_text("Extract stable user information.", encoding="utf-8")
+    provider = FakeProvider(
+        (
+            '{"summary":"","fact_ids_to_remove":[],"preferences_to_add":[],'
+            '"preference_ids_to_remove":[],"facts_to_add":[],'
+            '"constraints_to_add":[],"constraint_ids_to_remove":[]}'
+        )
+    )
+    extractor = LLMUserModelExtractor(provider=provider, prompt_path=prompt_path)
+
+    extractor.extract(
+        conversation=ConversationInput(
+            source="mcp",
+            messages=[
+                Message(role="assistant", text="What should I remember?"),
+                Message(role="user", text="Remember that I prefer concise answers."),
+                Message(role="tool", text="tool output"),
+            ],
+        ),
+        current_user_model=None,
+    )
+
+    assert "Remember that I prefer concise answers." in provider.last_user_prompt
+    assert "What should I remember?" not in provider.last_user_prompt
+    assert "tool output" not in provider.last_user_prompt
+
+
 def test_llm_user_model_extractor_rejects_invalid_json(tmp_path: Path) -> None:
     prompt_path = tmp_path / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
     prompt_path.write_text("Extract stable user information.", encoding="utf-8")
