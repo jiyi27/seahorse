@@ -162,27 +162,39 @@ If your embedding endpoint does not require authentication, such as a local Olla
 
 ### 1. Prerequisites
 
-- [Docker & Docker Compose](https://docs.docker.com/get-docker/) if you want local Qdrant and Ollama
+- [Docker & Docker Compose](https://docs.docker.com/get-docker/) for local Qdrant
 - [uv](https://github.com/astral-sh/uv) for Python dependency management
 
-### 2. Start Local Infrastructure
+### 2. Copy Example Files
 
-Seahorse can use local Qdrant and Ollama in the same way as your `DocMind` setup.
+`config.yaml` and `Makefile` are not tracked by git — copy from the provided examples and adjust to your setup:
 
-First-time setup:
+```bash
+cp config.yaml.example config.yaml
+cp Makefile.example Makefile   # only if using local Ollama for embedding
+```
+
+The default `Makefile` uses Qdrant only (remote embedding via OpenRouter). If you plan to run a local Ollama embedding model instead, copy `Makefile.example` over `Makefile` so the infra commands also manage the Ollama container.
+
+### 3. Configure
+
+Edit `config.yaml` to set your LLM model, embedding provider, and storage paths.
+
+Export required secrets before starting:
+
+```bash
+export OPENROUTER_API_KEY=your-key-here
+# if your embedding endpoint also needs a key:
+export OPENROUTER_EMBEDDING_API_KEY=your-key-here
+```
+
+### 4. Start Infrastructure and Sync Dependencies
+
+First-time setup (starts Qdrant, syncs Python deps):
 
 ```bash
 make infra-init
 ```
-
-This will:
-
-- start `qdrant` on `http://localhost:6333`
-- start `ollama` on `http://localhost:11434`
-- pull `nomic-embed-text:latest` into the Ollama container
-- sync Python dependencies
-
-Subsequent runs are handled automatically by `make run`, which starts infrastructure before the server.
 
 Stop local infrastructure:
 
@@ -190,58 +202,7 @@ Stop local infrastructure:
 make infra-down
 ```
 
-If you need to pull the embedding model again:
-
-```bash
-make ollama-pull
-```
-
-You can also run project-scoped container commands directly:
-
-```bash
-docker compose exec <service> <command>
-```
-
-### 3. Configure Seahorse
-
-Install dependencies manually if you are not using `make infra-init`:
-
-```bash
-make sync
-```
-
-Copy [`config.yaml.example`](/Users/david/codes/agent/seahorse/config.yaml.example) to `config.yaml` and adjust the values you need.
-
-For local Ollama + Qdrant vector memory, a typical config looks like:
-
-```yaml
-vector_memory:
-  enabled: true
-  retrieval:
-    max_chunks: 10
-    max_blocks: 5
-  embedding:
-    provider: openai_compatible
-    model: nomic-embed-text:latest
-    base_url: http://localhost:11434/v1
-    timeout_seconds: 30.0
-  store:
-    url: http://localhost:6333
-    collection_name: seahorse_memory
-```
-
-Required environment variables:
-
-- `OPENROUTER_API_KEY`
-- `vector_memory.embedding.api_key_env` only when your embedding endpoint requires authentication
-
-For local Ollama, no embedding API key is required. A minimal local setup can use:
-
-```bash
-export OPENROUTER_API_KEY=...
-```
-
-### 4. Run and Verify
+### 5. Run and Verify
 
 Run tests:
 
@@ -249,13 +210,13 @@ Run tests:
 make test
 ```
 
-Start HTTP (also starts Qdrant and Ollama if not already running):
+Start the HTTP server (also starts Qdrant if not already running):
 
 ```bash
 make run
 ```
 
-Start MCP:
+Start the MCP server:
 
 ```bash
 make run-mcp

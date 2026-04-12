@@ -45,6 +45,10 @@ data/
 logs/
 *.log
 
+# Local config and Makefile (copy from *.example to customize)
+config.yaml
+Makefile
+
 # Misc
 *.bak
 *.tmp
