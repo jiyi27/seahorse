@@ -50,4 +50,14 @@ class QdrantConversationVectorPipeline:
         prepared_records: list[PreparedVectorRecord] = []
         for block in blocks:
             prepared_records.extend(build_child_chunks(block))
+        for i, record in enumerate(prepared_records):
+            logger.debug(
+                "conversation_vector_pipeline.chunk",
+                {
+                    "chunk_index": i,
+                    "record_id": record.record_id,
+                    "text_for_embedding": record.text_for_embedding,
+                    "payload": record.payload,
+                },
+            )
         return prepared_records

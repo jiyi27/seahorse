@@ -27,9 +27,9 @@ vector_memory:
 
 embedding:
   provider: openai_compatible
-  model: text-embedding-3-small
-  base_url: https://api.openai.com/v1
-  api_key_env: OPENAI_API_KEY
+  model: nomic-embed-text
+  base_url: http://localhost:11434/v1
+  api_key_env: OLLAMA_API_KEY
   timeout_seconds: 30.0
 
 qdrant:

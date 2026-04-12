@@ -188,11 +188,7 @@ This will:
 - pull `nomic-embed-text:latest` into the Ollama container
 - sync Python dependencies
 
-Subsequent runs:
-
-```bash
-make infra-up
-```
+Subsequent runs are handled automatically by `make run`, which starts infrastructure before the server.
 
 Stop local infrastructure:
 
@@ -261,7 +257,7 @@ Run tests:
 make test
 ```
 
-Start HTTP:
+Start HTTP (also starts Qdrant and Ollama if not already running):
 
 ```bash
 make run

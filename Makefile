@@ -34,6 +34,7 @@ ollama-pull:
 	docker compose exec ollama ollama pull nomic-embed-text:latest
 
 run:
+	docker compose up -d
 	uv run seahorse-http
 
 run-mcp:
