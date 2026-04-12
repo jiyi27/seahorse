@@ -6,6 +6,9 @@ from dataclasses import dataclass
 from seahorse import logger
 from seahorse.ingest.models import PreparedVectorRecord
 
+SEARCH_METHOD_NAME = "search"
+QUERY_POINTS_METHOD_NAME = "query_points"
+
 
 @dataclass(frozen=True)
 class QdrantSettings:
@@ -66,24 +69,23 @@ class QdrantConversationVectorStore:
         limit: int,
     ) -> list[dict[str, object]]:
         client = self._get_client()
-        search_result = client.search(
-            collection_name=self._settings.collection_name,
+        search_result = self._run_search(
+            client,
             query_vector=query_vector,
             limit=limit,
-            with_payload=True,
-            with_vectors=False,
         )
+        points = self._extract_search_points(search_result)
         logger.info(
             "vector_store.search.completed",
             {
                 "collection": self._settings.collection_name,
                 "limit": limit,
-                "result_count": len(search_result),
+                "result_count": len(points),
             },
         )
         return [
             point.payload
-            for point in search_result
+            for point in points
             if isinstance(point.payload, dict)
         ]
 
@@ -127,6 +129,47 @@ class QdrantConversationVectorStore:
 
     def _get_client(self):
         return self._client
+
+    def _run_search(
+        self,
+        client,
+        *,
+        query_vector: list[float],
+        limit: int,
+    ):
+        search_method = getattr(client, SEARCH_METHOD_NAME, None)
+        if callable(search_method):
+            return search_method(
+                collection_name=self._settings.collection_name,
+                query_vector=query_vector,
+                limit=limit,
+                with_payload=True,
+                with_vectors=False,
+            )
+
+        query_points_method = getattr(client, QUERY_POINTS_METHOD_NAME, None)
+        if callable(query_points_method):
+            return query_points_method(
+                collection_name=self._settings.collection_name,
+                query=query_vector,
+                limit=limit,
+                with_payload=True,
+                with_vectors=False,
+            )
+
+        raise RuntimeError(
+            "qdrant-client does not expose a supported vector search method"
+        )
+
+    def _extract_search_points(self, search_result) -> list[object]:
+        if isinstance(search_result, list):
+            return search_result
+
+        points = getattr(search_result, "points", None)
+        if isinstance(points, list):
+            return points
+
+        raise RuntimeError("Unexpected qdrant search response shape")
 
     def _build_client(self):
         try:
