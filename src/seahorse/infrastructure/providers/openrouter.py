@@ -29,15 +29,6 @@ class OpenRouterProvider(LLMProvider):
         user_prompt: str,
     ) -> str:
         url = f"{self._settings.base_url.rstrip('/')}/chat/completions"
-        logger.debug(
-            "openrouter.request.started",
-            {
-                "model": self._settings.model,
-                "url": url,
-                "system_len": len(system_prompt),
-                "user_len": len(user_prompt),
-            },
-        )
         headers = {
             "Authorization": f"Bearer {self._settings.api_key}",
             "Content-Type": "application/json",
@@ -76,14 +67,6 @@ class OpenRouterProvider(LLMProvider):
                 exc=exc,
             )
             raise RuntimeError("OpenRouter returned invalid JSON") from exc
-        logger.debug(
-            "openrouter.request.succeeded",
-            {
-                "model": self._settings.model,
-                "response_len": len(response.text),
-                "status_code": response.status_code,
-            },
-        )
         choices = body.get("choices") or []
         if not choices:
             logger.error(

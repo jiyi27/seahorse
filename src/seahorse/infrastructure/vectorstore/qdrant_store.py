@@ -4,6 +4,8 @@ import threading
 from dataclasses import dataclass
 
 from seahorse import logger
+from seahorse.ingest.vector_fields import CONTENT
+from seahorse.ingest.vector_fields import EMBEDDING_TEXT
 from seahorse.ingest.models import PreparedVectorRecord
 
 SEARCH_METHOD_NAME = "search"
@@ -49,17 +51,21 @@ class QdrantConversationVectorStore:
             )
             for prepared, vector in zip(chunks, vectors, strict=True)
         ]
+        for prepared, vector in zip(chunks, vectors, strict=True):
+            logger.debug(
+                "vector_store.upsert.chunk",
+                {
+                    "record_id": prepared.record_id,
+                    "embedding": vector,
+                    "text_for_embedding": prepared.text_for_embedding,
+                    "embedding_text": prepared.payload.get(EMBEDDING_TEXT),
+                    "content": prepared.payload.get(CONTENT),
+                },
+            )
         client.upsert(
             collection_name=self._settings.collection_name,
             points=points,
             wait=True,
-        )
-        logger.info(
-            "vector_store.upsert.completed",
-            {
-                "collection": self._settings.collection_name,
-                "chunk_count": len(chunks),
-            },
         )
 
     def search_chunks(
@@ -75,14 +81,6 @@ class QdrantConversationVectorStore:
             limit=limit,
         )
         points = self._extract_search_points(search_result)
-        logger.info(
-            "vector_store.search.completed",
-            {
-                "collection": self._settings.collection_name,
-                "limit": limit,
-                "result_count": len(points),
-            },
-        )
         return [
             point.payload
             for point in points
@@ -104,27 +102,11 @@ class QdrantConversationVectorStore:
             collection.name for collection in client.get_collections().collections
         }
         if self._settings.collection_name in existing:
-            logger.debug(
-                "vector_store.collection.exists",
-                {
-                    "collection": self._settings.collection_name,
-                    "qdrant_url": self._settings.url,
-                },
-            )
             return
 
         client.create_collection(
             collection_name=self._settings.collection_name,
             vectors_config=VectorParams(size=vector_size, distance=Distance.COSINE),
-        )
-        logger.info(
-            "vector_store.collection.created",
-            {
-                "collection": self._settings.collection_name,
-                "qdrant_url": self._settings.url,
-                "vector_size": vector_size,
-                "distance": "cosine",
-            },
         )
 
     def _get_client(self):

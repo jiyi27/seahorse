@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from seahorse import logger
 from seahorse.domain.models import ConversationInput, UserModel, UserModelPatch
 from seahorse.infrastructure.extractors.user_model_patch_parser import (
     UserModelPatchParser,
@@ -31,42 +30,13 @@ class LLMUserModelExtractor:
         conversation: ConversationInput,
         current_user_model: UserModel | None,
     ) -> UserModelPatch:
-        logger.info(
-            "extractor.extract.started",
-            {
-                "source": conversation.source,
-                "session_id": conversation.session_id,
-                "has_user_model": current_user_model is not None,
-            },
-        )
         system_prompt = self._prompt_path.read_text(encoding="utf-8").strip()
         user_prompt = self._build_user_prompt(conversation, current_user_model)
         raw_output = self._provider.complete(
             system_prompt=system_prompt,
             user_prompt=user_prompt,
         )
-        logger.debug(
-            "extractor.llm_output.received",
-            {
-                "raw_output": raw_output,
-                "raw_output_len": len(raw_output),
-                "has_code_fence": raw_output.strip().startswith("```"),
-            },
-        )
-        patch = self._patch_parser.parse(raw_output)
-        logger.info(
-            "extractor.extract.succeeded",
-            {
-                "summary_updated": bool(patch.summary.strip()),
-                "facts_add": len(patch.facts_to_add),
-                "facts_remove": len(patch.fact_ids_to_remove),
-                "prefs_add": len(patch.preferences_to_add),
-                "prefs_remove": len(patch.preference_ids_to_remove),
-                "constraints_add": len(patch.constraints_to_add),
-                "constraints_remove": len(patch.constraint_ids_to_remove),
-            },
-        )
-        return patch
+        return self._patch_parser.parse(raw_output)
 
     def _build_user_prompt(
         self,

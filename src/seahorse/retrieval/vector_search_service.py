@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from seahorse import logger
 from seahorse.domain.models import MemorySearchResultItem
 from seahorse.retrieval.conversation_recall import (
     build_conversation_search_results,
@@ -28,14 +27,6 @@ class VectorSearchService:
         if not normalized_query:
             return []
 
-        logger.debug(
-            "vector_search.started",
-            {
-                "query_len": len(normalized_query),
-                "max_chunks": self._max_chunks,
-                "max_blocks": self._max_blocks,
-            },
-        )
         query_vector = self._embedding_model.embed_documents([normalized_query])[0]
         payloads = self._vector_store.search_chunks(
             query_vector=query_vector,
@@ -50,17 +41,4 @@ class VectorSearchService:
             parent_hits.append(parent_hit)
 
         deduped_parent_hits = dedupe_conversation_parent_hits(parent_hits)
-        results: list[MemorySearchResultItem] = build_conversation_search_results(
-            deduped_parent_hits[: self._max_blocks]
-        )
-
-        logger.debug(
-            "vector_search.completed",
-            {
-                "result_count": len(results),
-                "child_hit_count": len(parent_hits),
-                "parent_result_count": len(deduped_parent_hits),
-                "returned_block_count": len(results),
-            },
-        )
-        return results
+        return build_conversation_search_results(deduped_parent_hits[: self._max_blocks])

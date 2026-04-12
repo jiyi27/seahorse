@@ -49,7 +49,6 @@ def _configure_logging(project_root: Path, app_config) -> None:
     if not log_dir.is_absolute():
         log_dir = project_root / log_dir
     logger.configure(log_dir=log_dir, level=app_config.logger.log_level)
-    logger.info("seahorse.startup", {"project_root": str(project_root)})
 
 
 def _build_user_profile_ingest_service(

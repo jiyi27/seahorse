@@ -13,7 +13,6 @@ class VectorHealthService:
             "embedding": self._check_embedding(),
             "qdrant": self._check_qdrant(),
         }
-        logger.info("vector_health.checked", checks)
         return checks
 
     def _check_embedding(self) -> str:
