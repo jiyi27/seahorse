@@ -19,10 +19,16 @@ The profile captures stable personal information the user explicitly states abou
 - `identity`: name, age, occupation, education, location
 - `personality`: self-reported traits or tendencies, including MBTI
 - `social`: significant people in the user's life and the user's relationship with them
-- `interests`: hobbies, passions, things the user genuinely enjoys
+- `interests`: established long-term hobbies and passions
 - `values`: explicitly stated beliefs, principles, or things they care deeply about
 - `life_situation`: current life stage, ongoing projects, or major transitions
 - `note`: anything the user explicitly asks to be remembered that does not fit elsewhere
+
+## What does NOT belong in the profile
+
+- Topics the user is asking about or working through in this conversation.
+- Current tasks or short-term activities, unless the user explicitly asks to remember them.
+- Anything that would feel stale or irrelevant a month from now.
 
 `preferences` and `constraints` are tracked separately.
 

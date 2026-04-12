@@ -22,7 +22,7 @@ memory_search:
   top_k: 3
 
 vector_memory:
-  enabled: false
+  enabled: true
   top_k: 5
 
 embedding:
