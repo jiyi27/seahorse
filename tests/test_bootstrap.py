@@ -15,7 +15,6 @@ from seahorse.infrastructure.config import (
     DEFAULT_ENABLED_MCP_TOOLS,
     DEFAULT_LOG_DIR,
     DEFAULT_LOG_LEVEL,
-    DEFAULT_MEMORY_SEARCH_TOP_K,
     SecretSettings,
     USER_MODEL_EXTRACTION_PROMPT_FILE_NAME,
     USER_MODEL_FILE_NAME,
@@ -65,18 +64,44 @@ def test_load_secrets_from_env_loads_embedding_api_key_when_vector_memory_enable
         AppConfig.model_validate(
             {
                 "storage": {"data_dir": "data"},
-                "vector_memory": {"enabled": True},
-                "embedding": {
-                    "model": "text-embedding-3-small",
-                    "base_url": "https://api.openai.com/v1",
-                    "api_key_env": "TEST_EMBEDDING_KEY",
+                "vector_memory": {
+                    "enabled": True,
+                    "embedding": {
+                        "model": "text-embedding-3-small",
+                        "base_url": "https://api.openai.com/v1",
+                        "api_key_env": "TEST_EMBEDDING_KEY",
+                    },
+                    "store": {"url": "http://localhost:6333"},
                 },
-                "qdrant": {"url": "http://localhost:6333"},
             }
         )
     )
 
     assert settings.embedding_api_key == "embed-key"
+
+
+def test_load_secrets_from_env_allows_missing_embedding_api_key_for_local_vector_memory(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
+
+    settings = load_secrets_from_env(
+        AppConfig.model_validate(
+            {
+                "storage": {"data_dir": "data"},
+                "vector_memory": {
+                    "enabled": True,
+                    "embedding": {
+                        "model": "nomic-embed-text",
+                        "base_url": "http://localhost:11434/v1",
+                    },
+                    "store": {"url": "http://localhost:6333"},
+                },
+            }
+        )
+    )
+
+    assert settings.embedding_api_key is None
 
 
 def test_load_app_config_from_yaml_requires_explicit_storage_block(tmp_path: Path) -> None:
@@ -102,7 +127,8 @@ def test_load_app_config_from_yaml_applies_defaults_with_explicit_storage(
     assert config.logger.log_dir == DEFAULT_LOG_DIR
     assert config.logger.log_level == DEFAULT_LOG_LEVEL
     assert config.mcp.enabled_tools == list(DEFAULT_ENABLED_MCP_TOOLS)
-    assert config.memory_search.top_k == DEFAULT_MEMORY_SEARCH_TOP_K
+    assert config.vector_memory.retrieval.max_chunks == 10
+    assert config.vector_memory.retrieval.max_blocks == 5
     assert config.storage.data_dir == "data"
 
 
@@ -139,34 +165,37 @@ def test_load_app_config_from_yaml_rejects_unsupported_mcp_tool(tmp_path: Path) 
         load_app_config_from_yaml(config_path)
 
 
-def test_load_app_config_from_yaml_rejects_invalid_memory_search_top_k(
+def test_load_app_config_from_yaml_rejects_invalid_vector_memory_max_blocks(
     tmp_path: Path,
 ) -> None:
     config_path = tmp_path / DEFAULT_CONFIG_FILE_NAME
     config_path.write_text(
         (
-            "memory_search:\n"
-            "  top_k: 0\n"
+            "vector_memory:\n"
+            "  retrieval:\n"
+            "    max_blocks: 0\n"
             "storage:\n"
             "  data_dir: data\n"
         ),
         encoding="utf-8",
     )
 
-    with pytest.raises(RuntimeError, match="memory_search.top_k"):
+    with pytest.raises(RuntimeError, match="vector_memory.retrieval.max_blocks"):
         load_app_config_from_yaml(config_path)
 
 
 def test_app_config_requires_qdrant_when_vector_memory_enabled() -> None:
-    with pytest.raises(ValidationError, match="qdrant.url"):
+    with pytest.raises(ValidationError, match="vector_memory.store.url"):
         AppConfig.model_validate(
             {
                 "storage": {"data_dir": "data"},
-                "vector_memory": {"enabled": True},
-                "embedding": {
-                    "model": "text-embedding-3-small",
-                    "base_url": "https://api.openai.com/v1",
-                    "api_key_env": "OPENAI_API_KEY",
+                "vector_memory": {
+                    "enabled": True,
+                    "embedding": {
+                        "model": "text-embedding-3-small",
+                        "base_url": "https://api.openai.com/v1",
+                        "api_key_env": "OPENAI_API_KEY",
+                    },
                 },
             }
         )
@@ -281,7 +310,6 @@ def test_build_app_container_fails_fast_when_vector_memory_enabled_without_qdran
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
-    monkeypatch.setenv("OPENAI_API_KEY", "embed-key")
     write_minimal_runtime_files(
         tmp_path,
         config_text=(
@@ -291,15 +319,40 @@ def test_build_app_container_fails_fast_when_vector_memory_enabled_without_qdran
             "  data_dir: data\n"
             "vector_memory:\n"
             "  enabled: true\n"
-            "embedding:\n"
-            "  model: text-embedding-3-small\n"
-            "  base_url: https://api.openai.com/v1\n"
-            "  api_key_env: OPENAI_API_KEY\n"
+            "  embedding:\n"
+            "    model: text-embedding-3-small\n"
+            "    base_url: https://api.openai.com/v1\n"
+            "    api_key_env: OPENAI_API_KEY\n"
         ),
     )
 
-    with pytest.raises(RuntimeError, match="qdrant.url"):
+    with pytest.raises(RuntimeError, match="vector_memory.store.url"):
         build_app_container(tmp_path)
+
+def test_app_config_requires_nested_vector_memory_sections() -> None:
+    config = AppConfig.model_validate(
+        {
+            "storage": {"data_dir": "data"},
+            "vector_memory": {
+                "enabled": True,
+                "retrieval": {
+                    "max_chunks": 12,
+                    "max_blocks": 7,
+                },
+                "embedding": {
+                    "model": "text-embedding-3-small",
+                    "base_url": "https://api.openai.com/v1",
+                },
+                "store": {"url": "http://localhost:6333"},
+            },
+        }
+    )
+
+    assert config.vector_memory.enabled is True
+    assert config.vector_memory.retrieval.max_chunks == 12
+    assert config.vector_memory.retrieval.max_blocks == 7
+    assert config.vector_memory.embedding.model == "text-embedding-3-small"
+    assert config.vector_memory.store.url == "http://localhost:6333"
 
 
 def test_build_llm_provider_uses_configured_provider() -> None:

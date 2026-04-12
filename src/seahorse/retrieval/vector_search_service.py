@@ -10,10 +10,18 @@ from seahorse.retrieval.conversation_recall import (
 
 
 class VectorSearchService:
-    def __init__(self, embedding_model, vector_store, *, top_k: int) -> None:
+    def __init__(
+        self,
+        embedding_model,
+        vector_store,
+        *,
+        max_chunks: int,
+        max_blocks: int,
+    ) -> None:
         self._embedding_model = embedding_model
         self._vector_store = vector_store
-        self._top_k = top_k
+        self._max_chunks = max_chunks
+        self._max_blocks = max_blocks
 
     def search(self, query: str) -> list[MemorySearchResultItem]:
         normalized_query = query.strip()
@@ -22,12 +30,16 @@ class VectorSearchService:
 
         logger.debug(
             "vector_search.started",
-            {"query_len": len(normalized_query), "top_k": self._top_k},
+            {
+                "query_len": len(normalized_query),
+                "max_chunks": self._max_chunks,
+                "max_blocks": self._max_blocks,
+            },
         )
         query_vector = self._embedding_model.embed_documents([normalized_query])[0]
         payloads = self._vector_store.search_chunks(
             query_vector=query_vector,
-            limit=self._top_k,
+            limit=self._max_chunks,
         )
 
         parent_hits = []
@@ -39,7 +51,7 @@ class VectorSearchService:
 
         deduped_parent_hits = dedupe_conversation_parent_hits(parent_hits)
         results: list[MemorySearchResultItem] = build_conversation_search_results(
-            deduped_parent_hits
+            deduped_parent_hits[: self._max_blocks]
         )
 
         logger.debug(
@@ -48,6 +60,7 @@ class VectorSearchService:
                 "result_count": len(results),
                 "child_hit_count": len(parent_hits),
                 "parent_result_count": len(deduped_parent_hits),
+                "returned_block_count": len(results),
             },
         )
         return results

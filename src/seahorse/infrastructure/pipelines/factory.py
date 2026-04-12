@@ -24,17 +24,17 @@ def build_conversation_vector_pipeline(
 
     embedding_model = build_embedding_model(
         EmbeddingSettings(
-            provider=app_config.embedding.provider,
-            model=app_config.embedding.model or "",
-            base_url=app_config.embedding.base_url or "",
-            api_key=secrets.embedding_api_key or "",
-            timeout_seconds=app_config.embedding.timeout_seconds,
+            provider=app_config.vector_memory.embedding.provider,
+            model=app_config.vector_memory.embedding.model or "",
+            base_url=app_config.vector_memory.embedding.base_url or "",
+            api_key=secrets.embedding_api_key,
+            timeout_seconds=app_config.vector_memory.embedding.timeout_seconds,
         )
     )
     vector_store = build_qdrant_vector_store(
         QdrantSettings(
-            url=app_config.qdrant.url or "",
-            collection_name=app_config.qdrant.collection_name,
+            url=app_config.vector_memory.store.url or "",
+            collection_name=app_config.vector_memory.store.collection_name,
         )
     )
     return QdrantConversationVectorPipeline(
@@ -52,17 +52,17 @@ def build_vector_search_dependencies(
 
     embedding_model = build_embedding_model(
         EmbeddingSettings(
-            provider=app_config.embedding.provider,
-            model=app_config.embedding.model or "",
-            base_url=app_config.embedding.base_url or "",
-            api_key=secrets.embedding_api_key or "",
-            timeout_seconds=app_config.embedding.timeout_seconds,
+            provider=app_config.vector_memory.embedding.provider,
+            model=app_config.vector_memory.embedding.model or "",
+            base_url=app_config.vector_memory.embedding.base_url or "",
+            api_key=secrets.embedding_api_key,
+            timeout_seconds=app_config.vector_memory.embedding.timeout_seconds,
         )
     )
     vector_store = build_qdrant_vector_store(
         QdrantSettings(
-            url=app_config.qdrant.url or "",
-            collection_name=app_config.qdrant.collection_name,
+            url=app_config.vector_memory.store.url or "",
+            collection_name=app_config.vector_memory.store.collection_name,
         )
     )
     return embedding_model, vector_store

@@ -85,7 +85,6 @@ def _build_health_service(app_config, secrets) -> HealthService:
 def _build_memory_search_service(
     app_config,
     secrets,
-    user_model_repository: JSONUserModelRepository,
 ) -> MemorySearchService:
     vector_search_dependencies = build_vector_search_dependencies(app_config, secrets)
     vector_search_service = (
@@ -94,14 +93,11 @@ def _build_memory_search_service(
         else VectorSearchService(
             vector_search_dependencies[0],
             vector_search_dependencies[1],
-            top_k=app_config.vector_memory.top_k,
+            max_chunks=app_config.vector_memory.retrieval.max_chunks,
+            max_blocks=app_config.vector_memory.retrieval.max_blocks,
         )
     )
-    return MemorySearchService(
-        user_model_repository=user_model_repository,
-        top_k=app_config.memory_search.top_k,
-        vector_search_service=vector_search_service,
-    )
+    return MemorySearchService(vector_search_service=vector_search_service)
 
 
 def _build_session_ingest_service(
@@ -141,7 +137,6 @@ def build_app_container(
     memory_search_service = _build_memory_search_service(
         app_config,
         secrets,
-        user_model_repository,
     )
     session_ingest_service = _build_session_ingest_service(
         app_config,

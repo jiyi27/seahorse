@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, NoReturn
+from typing import NoReturn
 
 import yaml
 from pydantic import (
@@ -25,8 +25,8 @@ DEFAULT_CONFIG_FILE_NAME = "config.yaml"
 DEFAULT_LOG_DIR = "logs"
 DEFAULT_LOG_LEVEL = "info"
 DEFAULT_PROVIDER_TIMEOUT_SECONDS = 60.0
-DEFAULT_MEMORY_SEARCH_TOP_K = 3
-DEFAULT_VECTOR_MEMORY_TOP_K = 5
+DEFAULT_VECTOR_MEMORY_MAX_CHUNKS = 10
+DEFAULT_VECTOR_MEMORY_MAX_BLOCKS = 5
 DEFAULT_VECTOR_MEMORY_ENABLED = False
 DEFAULT_EMBEDDING_PROVIDER = OPENAI_COMPATIBLE_EMBEDDING_PROVIDER
 DEFAULT_EMBEDDING_TIMEOUT_SECONDS = 30.0
@@ -149,34 +149,7 @@ class MCPConfig(BaseModel):
         return normalized_tools
 
 
-class MemorySearchConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    top_k: int = DEFAULT_MEMORY_SEARCH_TOP_K
-
-    @field_validator("top_k")
-    @classmethod
-    def validate_top_k(cls, value: int) -> int:
-        if value <= 0:
-            raise ValueError("memory_search.top_k must be greater than 0")
-        return value
-
-
-class VectorMemoryConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    enabled: bool = DEFAULT_VECTOR_MEMORY_ENABLED
-    top_k: int = DEFAULT_VECTOR_MEMORY_TOP_K
-
-    @field_validator("top_k")
-    @classmethod
-    def validate_top_k(cls, value: int) -> int:
-        if value <= 0:
-            raise ValueError("vector_memory.top_k must be greater than 0")
-        return value
-
-
-class EmbeddingConfig(BaseModel):
+class VectorMemoryEmbeddingConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     provider: str = DEFAULT_EMBEDDING_PROVIDER
@@ -191,7 +164,9 @@ class EmbeddingConfig(BaseModel):
         normalized = value.strip().lower()
         if normalized not in SUPPORTED_EMBEDDING_PROVIDERS:
             valid = ", ".join(sorted(SUPPORTED_EMBEDDING_PROVIDERS))
-            raise ValueError(f"embedding.provider must be one of: {valid}")
+            raise ValueError(
+                f"vector_memory.embedding.provider must be one of: {valid}"
+            )
         return normalized
 
     @field_validator("model", "base_url", "api_key_env")
@@ -201,18 +176,22 @@ class EmbeddingConfig(BaseModel):
             return None
         normalized = value.strip()
         if not normalized:
-            raise ValueError(f"embedding.{info.field_name} must not be empty")
+            raise ValueError(
+                f"vector_memory.embedding.{info.field_name} must not be empty"
+            )
         return normalized
 
     @field_validator("timeout_seconds")
     @classmethod
     def validate_timeout(cls, value: float) -> float:
         if value <= 0:
-            raise ValueError("embedding.timeout_seconds must be greater than 0")
+            raise ValueError(
+                "vector_memory.embedding.timeout_seconds must be greater than 0"
+            )
         return value
 
 
-class QdrantConfig(BaseModel):
+class VectorMemoryStoreConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     url: str | None = None
@@ -225,7 +204,7 @@ class QdrantConfig(BaseModel):
             return None
         normalized = value.strip()
         if not normalized:
-            raise ValueError("qdrant.url must not be empty")
+            raise ValueError("vector_memory.store.url must not be empty")
         return normalized
 
     @field_validator("collection_name")
@@ -233,8 +212,38 @@ class QdrantConfig(BaseModel):
     def validate_collection_name(cls, value: str) -> str:
         normalized = value.strip()
         if not normalized:
-            raise ValueError("qdrant.collection_name must not be empty")
+            raise ValueError("vector_memory.store.collection_name must not be empty")
         return normalized
+
+
+class VectorMemoryRetrievalConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    max_chunks: int = DEFAULT_VECTOR_MEMORY_MAX_CHUNKS
+    max_blocks: int = DEFAULT_VECTOR_MEMORY_MAX_BLOCKS
+
+    @field_validator("max_chunks")
+    @classmethod
+    def validate_max_chunks(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("vector_memory.retrieval.max_chunks must be greater than 0")
+        return value
+
+    @field_validator("max_blocks")
+    @classmethod
+    def validate_max_blocks(cls, value: int) -> int:
+        if value <= 0:
+            raise ValueError("vector_memory.retrieval.max_blocks must be greater than 0")
+        return value
+
+
+class VectorMemoryConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = DEFAULT_VECTOR_MEMORY_ENABLED
+    retrieval: VectorMemoryRetrievalConfig = VectorMemoryRetrievalConfig()
+    embedding: VectorMemoryEmbeddingConfig = VectorMemoryEmbeddingConfig()
+    store: VectorMemoryStoreConfig = VectorMemoryStoreConfig()
 
 
 class AppConfig(BaseModel):
@@ -243,31 +252,24 @@ class AppConfig(BaseModel):
     provider: ProviderConfig = ProviderConfig()
     logger: LoggerConfig = LoggerConfig()
     mcp: MCPConfig = MCPConfig()
-    memory_search: MemorySearchConfig = MemorySearchConfig()
     vector_memory: VectorMemoryConfig = VectorMemoryConfig()
-    embedding: EmbeddingConfig = EmbeddingConfig()
-    qdrant: QdrantConfig = QdrantConfig()
     storage: StorageConfig
 
     @model_validator(mode="after")
     def validate_vector_memory_requirements(self) -> "AppConfig":
         if not self.vector_memory.enabled:
             return self
-        if not self.embedding.model:
+        if not self.vector_memory.embedding.model:
             raise ValueError(
-                "embedding.model is required when vector_memory.enabled is true"
+                "vector_memory.embedding.model is required when vector_memory.enabled is true"
             )
-        if not self.embedding.base_url:
+        if not self.vector_memory.embedding.base_url:
             raise ValueError(
-                "embedding.base_url is required when vector_memory.enabled is true"
+                "vector_memory.embedding.base_url is required when vector_memory.enabled is true"
             )
-        if not self.embedding.api_key_env:
+        if not self.vector_memory.store.url:
             raise ValueError(
-                "embedding.api_key_env is required when vector_memory.enabled is true"
-            )
-        if not self.qdrant.url:
-            raise ValueError(
-                "qdrant.url is required when vector_memory.enabled is true"
+                "vector_memory.store.url is required when vector_memory.enabled is true"
             )
         return self
 
@@ -321,16 +323,13 @@ def load_secrets_from_env(app_config: AppConfig) -> SecretSettings:
         )
     embedding_api_key: str | None = None
     if app_config.vector_memory.enabled:
-        api_key_env = app_config.embedding.api_key_env
-        if not api_key_env:
-            _raise_config_error(
-                "embedding.api_key_env is required when vector_memory.enabled is true"
-            )
-        embedding_api_key = os.environ.get(api_key_env)
-        if not embedding_api_key:
-            _raise_config_error(
-                f"Missing required environment variable: {api_key_env}"
-            )
+        api_key_env = app_config.vector_memory.embedding.api_key_env
+        if api_key_env:
+            embedding_api_key = os.environ.get(api_key_env)
+            if not embedding_api_key:
+                _raise_config_error(
+                    f"Missing required environment variable: {api_key_env}"
+                )
 
     return SecretSettings(
         openrouter_api_key=api_key,

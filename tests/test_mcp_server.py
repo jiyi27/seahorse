@@ -49,6 +49,11 @@ class FakeConversationVectorPipeline:
         return None
 
 
+class FakeVectorSearchService:
+    def search(self, query: str):
+        return []
+
+
 def test_create_mcp_server_registers_expected_tools() -> None:
     user_model_repository = FakeUserModelRepository()
     recall_service = RecallService(user_model_repository)
@@ -63,7 +68,9 @@ def test_create_mcp_server_registers_expected_tools() -> None:
     container = AppContainer(
         health_service=HealthService(),
         recall_service=recall_service,
-        memory_search_service=MemorySearchService(user_model_repository),
+        memory_search_service=MemorySearchService(
+            vector_search_service=FakeVectorSearchService()
+        ),
         session_ingest_service=session_ingest_service,
         user_model_renderer=UserModelRenderer(),
         enabled_mcp_tools=frozenset(
@@ -107,7 +114,9 @@ def test_create_mcp_server_registers_only_enabled_tools() -> None:
     container = AppContainer(
         health_service=HealthService(),
         recall_service=recall_service,
-        memory_search_service=MemorySearchService(user_model_repository),
+        memory_search_service=MemorySearchService(
+            vector_search_service=FakeVectorSearchService()
+        ),
         session_ingest_service=session_ingest_service,
         user_model_renderer=UserModelRenderer(),
         enabled_mcp_tools=frozenset({SEARCH_MEMORY_TOOL}),

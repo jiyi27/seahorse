@@ -97,32 +97,7 @@ def test_recall_service_returns_user_model() -> None:
     assert user_model.summary == "Knows Python."
 
 
-def test_memory_search_service_returns_matching_items() -> None:
-    user_model_repo = FakeUserModelRepository(
-        UserModel(
-            facts=[FactItem(id="fact_001", category="identity", text="Uses Python")],
-            preferences=[TextItem(id="preference_001", text="Prefers concise answers")],
-        )
-    )
-
-    service = MemorySearchService(user_model_repo)
-    results = service.search("python")
-
-    assert [result.model_dump() for result in results] == [
-        {
-            "id": "fact_001",
-            "source_type": "fact",
-            "text": "Uses Python",
-        }
-    ]
-
-
-def test_memory_search_service_prefers_vector_results_when_available() -> None:
-    user_model_repo = FakeUserModelRepository(
-        UserModel(
-            facts=[FactItem(id="fact_001", category="identity", text="Uses Python")],
-        )
-    )
+def test_memory_search_service_returns_vector_results() -> None:
     vector_search_service = FakeVectorSearchService(
         [
             MemorySearchResultItem(
@@ -133,10 +108,7 @@ def test_memory_search_service_prefers_vector_results_when_available() -> None:
         ]
     )
 
-    service = MemorySearchService(
-        user_model_repo,
-        vector_search_service=vector_search_service,
-    )
+    service = MemorySearchService(vector_search_service=vector_search_service)
     results = service.search("chunking")
 
     assert [result.model_dump() for result in results] == [
@@ -149,28 +121,22 @@ def test_memory_search_service_prefers_vector_results_when_available() -> None:
     assert vector_search_service.calls == 1
 
 
-def test_memory_search_service_falls_back_to_user_model_when_vector_returns_nothing() -> None:
-    user_model_repo = FakeUserModelRepository(
-        UserModel(
-            preferences=[TextItem(id="preference_001", text="Prefers concise answers")],
-        )
-    )
+def test_memory_search_service_returns_empty_when_vector_returns_nothing() -> None:
     vector_search_service = FakeVectorSearchService()
 
-    service = MemorySearchService(
-        user_model_repo,
-        vector_search_service=vector_search_service,
-    )
+    service = MemorySearchService(vector_search_service=vector_search_service)
     results = service.search("concise")
 
-    assert [result.model_dump() for result in results] == [
-        {
-            "id": "preference_001",
-            "source_type": "preference",
-            "text": "Prefers concise answers",
-        }
-    ]
+    assert results == []
     assert vector_search_service.calls == 1
+
+
+def test_memory_search_service_returns_empty_when_vector_search_disabled() -> None:
+    service = MemorySearchService()
+
+    results = service.search("concise")
+
+    assert results == []
 
 
 def test_user_profile_ingest_service_merges_and_persists_user_model() -> None:

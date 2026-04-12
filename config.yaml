@@ -18,20 +18,22 @@ mcp:
     - get_user_profile
     - search_memory
 
-memory_search:
-  top_k: 3
-
 vector_memory:
   enabled: true
-  top_k: 5
-
-embedding:
-  provider: openai_compatible
-  model: nomic-embed-text
-  base_url: http://localhost:11434/v1
-  api_key_env: OLLAMA_API_KEY
-  timeout_seconds: 30.0
-
-qdrant:
-  url: http://localhost:6333
-  collection_name: seahorse_memory
+  retrieval:
+    # Controls how many chunks are fetched from the vector store for one search.
+    max_chunks: 10
+    # Controls how many conversation blocks are returned after chunk deduplication.
+    max_blocks: 5
+  embedding:
+    provider: openai_compatible
+    model: nomic-embed-text
+    base_url: http://localhost:11434/v1
+    # Optional. Set this only if your embedding endpoint requires an API key.
+    # Example: OPENAI_API_KEY for OpenAI-compatible remote providers.
+    # Leave unset for local Ollama if no key is required.
+    # api_key_env: OPENAI_API_KEY
+    timeout_seconds: 30.0
+  store:
+    url: http://localhost:6333
+    collection_name: seahorse_memory

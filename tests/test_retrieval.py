@@ -92,7 +92,12 @@ def test_vector_search_service_embeds_query_dedupes_by_parent_block() -> None:
             },
         ]
     )
-    service = VectorSearchService(embedding_model, vector_store, top_k=5)
+    service = VectorSearchService(
+        embedding_model,
+        vector_store,
+        max_chunks=5,
+        max_blocks=5,
+    )
 
     results = service.search("vector memory")
 
@@ -105,3 +110,25 @@ def test_vector_search_service_embeds_query_dedupes_by_parent_block() -> None:
             text="[user]\nI want memory.\n\n[assistant]\nWe discussed adding vector memory.",
         )
     ]
+
+
+def test_vector_search_service_applies_max_blocks_after_deduplication() -> None:
+    embedding_model = FakeEmbeddingModel()
+    vector_store = FakeVectorStore(
+        [
+            {PARENT_BLOCK_ID: "block-1", CONTENT: "first"},
+            {PARENT_BLOCK_ID: "block-1", CONTENT: "first duplicate"},
+            {PARENT_BLOCK_ID: "block-2", CONTENT: "second"},
+            {PARENT_BLOCK_ID: "block-3", CONTENT: "third"},
+        ]
+    )
+    service = VectorSearchService(
+        embedding_model,
+        vector_store,
+        max_chunks=10,
+        max_blocks=2,
+    )
+
+    results = service.search("vector memory")
+
+    assert [result.id for result in results] == ["block-1", "block-2"]

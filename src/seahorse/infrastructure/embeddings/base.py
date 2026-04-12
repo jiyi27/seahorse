@@ -18,5 +18,5 @@ class EmbeddingSettings:
     provider: str
     model: str
     base_url: str
-    api_key: str
+    api_key: str | None
     timeout_seconds: float

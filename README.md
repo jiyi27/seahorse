@@ -87,7 +87,7 @@ Copy [`config.yaml.example`](/Users/david/codes/agent/seahorse/config.yaml.examp
 Required environment variables:
 
 - `OPENROUTER_API_KEY`
-- the environment variable named by `embedding.api_key_env` when `vector_memory.enabled: true`
+- the environment variable named by `vector_memory.embedding.api_key_env` when that field is set
 
 Startup is fail-fast. Seahorse exits during bootstrap if required settings, secrets, or prompt files are missing or invalid.
 
@@ -128,38 +128,32 @@ Supported tool names:
 - `search_memory`
 - `ingest_turn`
 
-#### `memory_search`
-
-Controls generic recall behavior.
-
-- `top_k`: how many recalled results `search_memory` returns
-
 #### `vector_memory`
 
 Controls optional transcript vector indexing.
 
 - `enabled`: enables Qdrant-backed vector memory
-- `top_k`: how many vector hits are returned during vector-backed recall
+- `retrieval`: vector search result sizing
+- `embedding`: embedding-model settings
+- `store`: vector-store settings
 
 When disabled, Seahorse still keeps the structured user profile memory and skips transcript vector indexing.
+If your embedding endpoint does not require authentication, such as a local Ollama OpenAI-compatible endpoint, leave `api_key_env` unset.
 
-#### `embedding`
+`vector_memory.retrieval` fields:
 
-Controls the embedding model used for vector memory.
+- `max_chunks`: how many chunks are fetched from the vector store for one search
+- `max_blocks`: how many conversation blocks are returned after chunk deduplication
 
-Required only when `vector_memory.enabled` is `true`.
+`vector_memory.embedding` fields:
 
 - `provider`: embedding provider, currently `openai_compatible`
 - `model`: embedding model name
 - `base_url`: embedding API base URL such as `https://api.openai.com/v1` or `http://localhost:11434/v1`
-- `api_key_env`: environment variable name that stores the embedding API key
+- `api_key_env`: optional environment variable name for the embedding API key
 - `timeout_seconds`: embedding request timeout
 
-#### `qdrant`
-
-Controls the vector store connection.
-
-Required only when `vector_memory.enabled` is `true`.
+`vector_memory.store` fields:
 
 - `url`: Qdrant server URL
 - `collection_name`: Qdrant collection name
@@ -223,30 +217,28 @@ For local Ollama + Qdrant vector memory, a typical config looks like:
 ```yaml
 vector_memory:
   enabled: true
-  top_k: 5
-
-embedding:
-  provider: openai_compatible
-  model: nomic-embed-text:latest
-  base_url: http://localhost:11434/v1
-  api_key_env: OLLAMA_API_KEY
-  timeout_seconds: 30.0
-
-qdrant:
-  url: http://localhost:6333
-  collection_name: seahorse_memory
+  retrieval:
+    max_chunks: 10
+    max_blocks: 5
+  embedding:
+    provider: openai_compatible
+    model: nomic-embed-text:latest
+    base_url: http://localhost:11434/v1
+    timeout_seconds: 30.0
+  store:
+    url: http://localhost:6333
+    collection_name: seahorse_memory
 ```
 
 Required environment variables:
 
 - `OPENROUTER_API_KEY`
-- `OLLAMA_API_KEY` when using local Ollama through its OpenAI-compatible endpoint
+- `vector_memory.embedding.api_key_env` only when your embedding endpoint requires authentication
 
-For local Ollama, `OLLAMA_API_KEY` can be any non-empty placeholder value because the server ignores it, for example:
+For local Ollama, no embedding API key is required. A minimal local setup can use:
 
 ```bash
 export OPENROUTER_API_KEY=...
-export OLLAMA_API_KEY=ollama
 ```
 
 ### 4. Run and Verify

@@ -7,7 +7,13 @@ from seahorse.application.recall_service import RecallService
 from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
-from seahorse.domain.models import FactItem, TextItem, UserModel, UserModelPatch
+from seahorse.domain.models import (
+    FactItem,
+    MemorySearchResultItem,
+    TextItem,
+    UserModel,
+    UserModelPatch,
+)
 from seahorse.tools.get_user_profile import get_user_profile
 from seahorse.tools.ingest_turn import ingest_turn
 from seahorse.tools.search_memory import search_memory
@@ -44,6 +50,14 @@ class FakeExtractor:
 class FakeConversationVectorPipeline:
     def process(self, conversation) -> None:
         return None
+
+
+class FakeVectorSearchService:
+    def __init__(self, results: list[MemorySearchResultItem] | None = None) -> None:
+        self._results = results or []
+
+    def search(self, query: str) -> list[MemorySearchResultItem]:
+        return self._results
 
 
 class FailingUserModelRepository:
@@ -126,7 +140,17 @@ def test_get_user_profile_returns_null_when_user_model_missing() -> None:
 
 
 def test_search_memory_returns_matching_results() -> None:
-    service = MemorySearchService(FakeUserModelRepository(build_user_model()))
+    service = MemorySearchService(
+        vector_search_service=FakeVectorSearchService(
+            [
+                MemorySearchResultItem(
+                    id="block_001",
+                    source_type="conversation",
+                    text="User works best at night",
+                )
+            ]
+        )
+    )
 
     payload = search_memory(service, query="rushed")
 
@@ -134,9 +158,9 @@ def test_search_memory_returns_matching_results() -> None:
         "success": True,
         "results": [
             {
-                "id": "constraint_001",
-                "source_type": "constraint",
-                "text": "Dislikes being rushed",
+                "id": "block_001",
+                "source_type": "conversation",
+                "text": "User works best at night",
             }
         ],
         "hint": SEARCH_MEMORY_HAS_RESULTS_HINT,
@@ -144,7 +168,7 @@ def test_search_memory_returns_matching_results() -> None:
 
 
 def test_search_memory_returns_empty_results_when_not_found() -> None:
-    service = MemorySearchService(FakeUserModelRepository(build_user_model()))
+    service = MemorySearchService(vector_search_service=FakeVectorSearchService())
 
     payload = search_memory(service, query="travel")
 
@@ -153,22 +177,6 @@ def test_search_memory_returns_empty_results_when_not_found() -> None:
         "results": [],
         "hint": SEARCH_MEMORY_NO_RESULTS_HINT,
     }
-
-
-def test_search_memory_applies_top_k_limit() -> None:
-    user_model = UserModel(
-        facts=[
-            FactItem(id="fact_001", category="identity", text="Night owl"),
-            FactItem(id="fact_002", category="note", text="Night coding"),
-        ],
-        preferences=[TextItem(id="preference_001", text="Night walks")],
-    )
-    service = MemorySearchService(FakeUserModelRepository(user_model), top_k=2)
-
-    payload = search_memory(service, query="night")
-
-    assert payload["success"] is True
-    assert len(payload["results"]) == 2
 
 
 def test_ingest_turn_normalizes_messages_and_returns_result() -> None:
@@ -197,14 +205,24 @@ def test_get_user_profile_returns_structured_internal_error_on_runtime_failure()
 
 
 def test_search_memory_returns_structured_internal_error_on_runtime_failure() -> None:
-    service = MemorySearchService(FailingUserModelRepository())
+    service = MemorySearchService(
+        vector_search_service=type(
+            "FailingVectorSearchService",
+            (),
+            {
+                "search": lambda self, query: (_ for _ in ()).throw(
+                    RuntimeError("Vector search unavailable")
+                )
+            },
+        )(),
+    )
 
     payload = search_memory(service, query="night")
 
     assert payload == {
         "success": False,
         "error_type": "internal_error",
-        "message": "User model storage unavailable",
+        "message": "Vector search unavailable",
         "hint": SEARCH_MEMORY_FAILED_HINT,
     }
 

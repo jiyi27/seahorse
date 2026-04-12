@@ -27,13 +27,13 @@ class OpenAICompatibleEmbeddingModel:
         if not texts:
             return []
         url = f"{self._settings.base_url.rstrip('/')}/embeddings"
+        headers = {"Content-Type": "application/json"}
+        if self._settings.api_key:
+            headers["Authorization"] = f"Bearer {self._settings.api_key}"
         try:
             response = self._get_client().post(
                 url,
-                headers={
-                    "Authorization": f"Bearer {self._settings.api_key}",
-                    "Content-Type": "application/json",
-                },
+                headers=headers,
                 json={
                     "model": self._settings.model,
                     "input": texts,

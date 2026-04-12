@@ -21,7 +21,13 @@ from seahorse.application.user_model_merger import UserModelMerger
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
 from seahorse.application.user_model_renderer import UserModelRenderer
 from seahorse.bootstrap import AppContainer
-from seahorse.domain.models import FactItem, TextItem, UserModel, UserModelPatch
+from seahorse.domain.models import (
+    FactItem,
+    MemorySearchResultItem,
+    TextItem,
+    UserModel,
+    UserModelPatch,
+)
 from seahorse.tools.tool_hints import USER_PROFILE_SUCCESS_HINT
 from seahorse.tools.tool_names import GET_USER_PROFILE_TOOL, INGEST_TURN_TOOL, SEARCH_MEMORY_TOOL
 
@@ -48,6 +54,17 @@ class FakeExtractor:
 class FakeConversationVectorPipeline:
     def process(self, conversation) -> None:
         return None
+
+
+class FakeVectorSearchService:
+    def search(self, query: str) -> list[MemorySearchResultItem]:
+        return [
+            MemorySearchResultItem(
+                id="block_001",
+                source_type="conversation",
+                text="User works best at night",
+            )
+        ]
 
 
 class FailingExtractor:
@@ -83,7 +100,9 @@ def build_test_client() -> TestClient:
     container = AppContainer(
         health_service=HealthService(),
         recall_service=recall_service,
-        memory_search_service=MemorySearchService(user_model_repository),
+        memory_search_service=MemorySearchService(
+            vector_search_service=FakeVectorSearchService()
+        ),
         session_ingest_service=session_ingest_service,
         user_model_renderer=UserModelRenderer(),
         enabled_mcp_tools=frozenset(
@@ -143,8 +162,8 @@ def test_memory_search_endpoint_returns_matches() -> None:
         "success": True,
         "results": [
             {
-                "id": "fact_001",
-                "source_type": "fact",
+                "id": "block_001",
+                "source_type": "conversation",
                 "text": "User works best at night",
             }
         ],
@@ -233,7 +252,9 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
     container = AppContainer(
         health_service=HealthService(),
         recall_service=recall_service,
-        memory_search_service=MemorySearchService(user_model_repository),
+        memory_search_service=MemorySearchService(
+            vector_search_service=FakeVectorSearchService()
+        ),
         session_ingest_service=session_ingest_service,
         user_model_renderer=UserModelRenderer(),
         enabled_mcp_tools=frozenset(
@@ -326,7 +347,9 @@ def test_user_profile_endpoint_returns_null_when_user_model_missing() -> None:
     container = AppContainer(
         health_service=HealthService(),
         recall_service=recall_service,
-        memory_search_service=MemorySearchService(user_model_repository),
+        memory_search_service=MemorySearchService(
+            vector_search_service=FakeVectorSearchService()
+        ),
         session_ingest_service=session_ingest_service,
         user_model_renderer=UserModelRenderer(),
         enabled_mcp_tools=frozenset(
