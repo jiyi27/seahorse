@@ -17,13 +17,13 @@ class UserModelPatchParser:
         try:
             payload = json.loads(normalized)
         except json.JSONDecodeError as exc:
-            logger.error("extractor.parse.json_error", {}, exc=exc)
+            logger.error("extractor.output.invalid_json", {}, exc=exc)
             raise RuntimeError("LLM extractor returned invalid JSON") from exc
 
         try:
             return UserModelPatch.model_validate(payload)
         except ValidationError as exc:
-            logger.error("extractor.parse.validation_error", {}, exc=exc)
+            logger.error("extractor.output.invalid_schema", {}, exc=exc)
             raise RuntimeError("LLM extractor returned an invalid patch payload") from exc
 
     def _strip_code_fence(self, content: str) -> str:

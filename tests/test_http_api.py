@@ -209,10 +209,10 @@ def test_http_middleware_logs_request_and_response_bodies(tmp_path: Path) -> Non
 
     records = _read_info_log_records(tmp_path)
     request_record = next(
-        record for record in records if record["topic"] == "http.request.received"
+        record for record in records if record["topic"] == "http.request.in"
     )
     response_record = next(
-        record for record in records if record["topic"] == "http.response.completed"
+        record for record in records if record["topic"] == "http.response.out"
     )
 
     assert request_record["context_id"] == "req-1234"

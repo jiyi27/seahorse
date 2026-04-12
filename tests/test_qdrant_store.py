@@ -132,7 +132,7 @@ def test_upsert_chunks_logs_each_chunk_payload_and_embedding(
             records.append(json.loads(line))
 
     chunk_record = next(
-        record for record in records if record["topic"] == "vector_store.upsert.chunk"
+        record for record in records if record["topic"] == "rag.chunk.upsert"
     )
     assert chunk_record["data"] == {
         "record_id": "chunk-1",

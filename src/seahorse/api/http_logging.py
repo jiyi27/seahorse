@@ -53,7 +53,7 @@ def register_http_logging_middleware(app: FastAPI) -> None:
         try:
             request_body = await request.body()
             logger.info(
-                "http.request.received",
+                "http.request.in",
                 {
                     "method": request.method,
                     "path": request.url.path,
@@ -68,7 +68,7 @@ def register_http_logging_middleware(app: FastAPI) -> None:
             response_body, response = await _read_response_body(response)
             response.headers[REQUEST_ID_HEADER] = context_id
             logger.info(
-                "http.response.completed",
+                "http.response.out",
                 {
                     "method": request.method,
                     "path": request.url.path,

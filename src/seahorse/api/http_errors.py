@@ -40,14 +40,14 @@ def build_http_exception_response(
     log_exception: bool = True,
 ) -> JSONResponse:
     if isinstance(exc, (RequestValidationError, ValidationError)):
-        topic = "http.validation_error"
+        topic = "http.request.invalid"
         status_code = 422
         content = {
             "error": _INVALID_REQUEST_MESSAGE,
             "type": type(exc).__name__,
         }
     else:
-        topic = "http.unhandled_error"
+        topic = "http.request.failed"
         status_code = 500
         content = {
             "error": _INTERNAL_SERVER_ERROR_MESSAGE,

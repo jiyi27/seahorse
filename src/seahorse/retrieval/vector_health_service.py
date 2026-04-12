@@ -20,7 +20,7 @@ class VectorHealthService:
             self._embedding_model.check_connection()
         except Exception as exc:
             logger.warning(
-                "vector_health.embedding.failed",
+                "vector.embedding.failed",
                 {"error": str(exc)},
                 exc=exc,
             )
@@ -32,7 +32,7 @@ class VectorHealthService:
             self._vector_store.check_connection()
         except Exception as exc:
             logger.warning(
-                "vector_health.qdrant.failed",
+                "vector.qdrant.failed",
                 {"error": str(exc)},
                 exc=exc,
             )

@@ -52,7 +52,7 @@ class OpenRouterProvider(LLMProvider):
             response.raise_for_status()
         except httpx.HTTPError as exc:
             logger.error(
-                "openrouter.request.http_error",
+                "openrouter.request.failed",
                 {"model": self._settings.model, "url": url},
                 exc=exc,
             )
@@ -62,7 +62,7 @@ class OpenRouterProvider(LLMProvider):
             body = response.json()
         except ValueError as exc:
             logger.error(
-                "openrouter.request.bad_json",
+                "openrouter.response.invalid_json",
                 {"model": self._settings.model},
                 exc=exc,
             )
@@ -70,7 +70,7 @@ class OpenRouterProvider(LLMProvider):
         choices = body.get("choices") or []
         if not choices:
             logger.error(
-                "openrouter.request.bad_schema",
+                "openrouter.response.invalid_schema",
                 {
                     "model": self._settings.model,
                     "body_keys": sorted(body.keys()),
@@ -94,7 +94,7 @@ class OpenRouterProvider(LLMProvider):
                 return merged
 
         logger.error(
-            "openrouter.request.no_content",
+            "openrouter.response.empty_content",
             {
                 "model": self._settings.model,
                 "content_type": type(content).__name__,

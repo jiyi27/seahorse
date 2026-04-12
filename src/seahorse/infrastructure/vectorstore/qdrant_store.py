@@ -53,7 +53,7 @@ class QdrantConversationVectorStore:
         ]
         for prepared, vector in zip(chunks, vectors, strict=True):
             logger.debug(
-                "vector_store.upsert.chunk",
+                "rag.chunk.upsert",
                 {
                     "record_id": prepared.record_id,
                     "embedding": vector,
