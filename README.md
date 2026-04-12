@@ -285,3 +285,92 @@ The codebase is organized by layer:
 - Seahorse is designed as a focused memory component, not a full agent framework.
 - Structured profile memory and vector memory are complementary here: profile memory stores durable facts, while vector memory helps recall prior session context.
 - For tool wording guidance and memory-tool design notes, see [docs/tool-design.md](/Users/david/codes/agent/seahorse/docs/tool-design.md) and [docs/session-vector-memory-design.md](/Users/david/codes/agent/seahorse/docs/session-vector-memory-design.md).
+
+## FAQ
+
+### How do I use a local embedding model via Ollama?
+
+Seahorse ships with `nomic-embed-text` as the default, which is English-only. For mixed Chinese and English content, switch to a multilingual model.
+
+Recommended local models:
+
+| Model | Languages | Vector dims | Local memory | Notes |
+|---|---|---|---|---|
+| `nomic-embed-text` | English only | 768 | ~275 MB | Fast; default |
+| `bge-m3` | 100+ | 1024 | ~1.2 GB | Reliable multilingual baseline |
+| `qwen3-embedding:0.6b` | 100+ | 1024 | ~600 MB | Lightweight; better than bge-m3 |
+| `qwen3-embedding:4b` | 100+ | 2560 | ~3 GB | Recommended balance of quality and resource use |
+| `qwen3-embedding:8b` | 100+ | 4096 | ~5 GB (Q4) | Highest quality; requires 16 GB+ RAM |
+
+**Steps to switch local models:**
+
+**1. Pull the new model:**
+
+```bash
+docker compose exec ollama ollama pull qwen3-embedding:4b
+```
+
+**2. Remove the old model to free disk space (optional but recommended):**
+
+```bash
+docker compose exec ollama ollama rm nomic-embed-text
+```
+
+To list currently installed models:
+
+```bash
+docker compose exec ollama ollama list
+```
+
+**3. Update `config.yaml`:**
+
+```yaml
+vector_memory:
+  embedding:
+    provider: openai_compatible
+    model: qwen3-embedding:4b
+    base_url: http://localhost:11434/v1
+    timeout_seconds: 30.0
+```
+
+No `api_key_env` is needed for local Ollama.
+
+**4. Delete the existing Qdrant collection so it is rebuilt with the correct vector size:**
+
+```bash
+curl -X DELETE http://localhost:6333/collections/seahorse_memory
+```
+
+Then restart Seahorse. The collection is recreated automatically on the first ingest. Any previously stored vectors are lost and must be re-ingested.
+
+**Note on memory usage:** Ollama loads a model into memory on the first request and unloads it automatically after **5 minutes of inactivity**. The model is reloaded on the next request, which adds a short delay for that first embedding call. During idle periods the model holds no memory.
+
+---
+
+### How do I use a third-party embedding service?
+
+Seahorse supports any OpenAI-compatible embedding endpoint. No code changes are needed — only `config.yaml` and an environment variable for the API key.
+
+**Qdrant collection rebuild is still required** when switching from a local model, because the vector dimension will change. Delete the existing collection before restarting:
+
+```bash
+curl -X DELETE http://localhost:6333/collections/seahorse_memory
+```
+
+#### OpenRouter
+
+OpenRouter provides hosted access to models such as `qwen/qwen3-embedding-8b` through an OpenAI-compatible API. Set `api_key_env` to the name of whichever environment variable holds your OpenRouter embedding key.
+
+```yaml
+vector_memory:
+  embedding:
+    provider: openai_compatible
+    model: qwen/qwen3-embedding-8b
+    base_url: https://openrouter.ai/api/v1
+    api_key_env: OPENROUTER_EMBEDDING_API_KEY
+    timeout_seconds: 30.0
+```
+
+```bash
+export OPENROUTER_EMBEDDING_API_KEY=your-key-here
+```

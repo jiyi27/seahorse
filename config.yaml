@@ -27,12 +27,9 @@ vector_memory:
     max_blocks: 3
   embedding:
     provider: openai_compatible
-    model: nomic-embed-text
-    base_url: http://localhost:11434/v1
-    # Optional. Set this only if your embedding endpoint requires an API key.
-    # Example: OPENAI_API_KEY for OpenAI-compatible remote providers.
-    # Leave unset for local Ollama if no key is required.
-    # api_key_env: OPENAI_API_KEY
+    model: qwen/qwen3-embedding-8b
+    base_url: https://openrouter.ai/api/v1
+    api_key_env: OPENROUTER_EMBEDDING_API_KEY
     timeout_seconds: 30.0
   store:
     url: http://localhost:6333

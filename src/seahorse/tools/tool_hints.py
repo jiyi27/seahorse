@@ -19,15 +19,17 @@ def search_memory_has_results_hint(count: int) -> str:
     return (
         f"Found {count} past conversation(s) from memory. Judge relevance yourself: "
         f"use what fits, ignore what clearly doesn't. If results seem off, retry "
-        f"once with a rephrased query. After two attempts, tell the user you don't "
-        f"recall and move on — do not guess."
+        f"once — either rephrase the query or switch to the other language (Chinese "
+        f"or English), as memory may have been stored in a different language. "
+        f"After two attempts, tell the user you don't recall and move on — do not guess."
     )
 
 
 SEARCH_MEMORY_NO_RESULTS_HINT = (
-    "No conversation blocks matched your query in vector memory. You may retry "
-    "once with a rephrased declarative phrase. If still nothing, tell the user "
-    "you don't recall — do not guess or invent context."
+    "No conversation blocks matched your query in vector memory. Retry once — "
+    "either rephrase the query or switch to the other language (Chinese or English), "
+    "as memory may have been stored in a different language. If still nothing, tell "
+    "the user you don't recall — do not guess or invent context."
 )
 SEARCH_MEMORY_FAILED_HINT = (
     "Memory search failed. Do not retry automatically. Proceed without recalled "

@@ -1,67 +1,42 @@
 # Copy this file to config.yaml and adjust only the non-secret settings you need.
 # Before startup, export OPENROUTER_API_KEY in the shell environment.
 
+# Non-secret application settings for Seahorse.
+# Before startup, export OPENROUTER_API_KEY in the shell environment.
+
 provider:
-  # Supported values: openrouter
-  # Default: openrouter
   name: openrouter
-  # Required for openrouter.
-  model: openai/gpt-4.1-mini
-  # Default: 60.0
-  timeout_seconds: 60.0
+  model: google/gemini-3.1-flash-lite-preview
+  timeout_seconds: 10.0
 
 logger:
-  # Relative paths are resolved from the project root.
-  # Default: logs
   log_dir: logs
-  # Supported values: debug, info, warning, error
-  # Default: info
-  log_level: info
+  log_level: debug
+
+storage:
+  data_dir: data
 
 mcp:
-  # Optional. Controls which MCP tools are registered.
-  # Supported values: get_user_profile, search_memory, ingest_turn
-  # Default: all tools enabled
   enabled_tools:
     - get_user_profile
     - search_memory
-    - ingest_turn
-
-storage:
-  # Required. Relative paths are resolved from the project root.
-  data_dir: data
 
 vector_memory:
-  # Optional. Enables session transcript vector indexing.
-  # Default: false
-  enabled: false
+  enabled: true
   retrieval:
-    # Optional. Controls how many chunks are fetched from the vector store for one search.
-    # Default: 10
-    max_chunks: 10
-    # Optional. Controls how many conversation blocks are returned after chunk deduplication.
-    # Default: 5
-    max_blocks: 5
+    # Controls how many chunks are fetched from the vector store for one search.
+    max_chunks: 6
+    # Controls how many conversation blocks are returned after chunk deduplication.
+    max_blocks: 3
   embedding:
-    # Required when vector_memory.enabled is true.
-    # Supported values: openai_compatible
     provider: openai_compatible
-    # Required when vector_memory.enabled is true.
-    # Example remote model: text-embedding-3-small
-    # Example local Ollama model: nomic-embed-text:latest
-    model: text-embedding-3-small
-    # Required when vector_memory.enabled is true.
-    # Example remote base URL: https://api.openai.com/v1
-    # Example local Ollama base URL: http://localhost:11434/v1
-    base_url: https://api.openai.com/v1
-    # Optional. Set this only when your embedding endpoint expects authentication.
-    # Leave unset for local Ollama/OpenAI-compatible endpoints that do not require a key.
-    api_key_env: OPENAI_API_KEY
-    # Default: 30.0
+    model: qwen3-embedding:4b
+    base_url: http://localhost:11434/v1
+    # Optional. Set this only if your embedding endpoint requires an API key.
+    # Example: OPENAI_API_KEY for OpenAI-compatible remote providers.
+    # Leave unset for local Ollama if no key is required.
+    # api_key_env: OPENAI_API_KEY
     timeout_seconds: 30.0
   store:
-    # Required when vector_memory.enabled is true.
-    # Qdrant base URL.
     url: http://localhost:6333
-    # Default: seahorse_memory
     collection_name: seahorse_memory
