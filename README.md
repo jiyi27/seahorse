@@ -165,30 +165,22 @@ If your embedding endpoint does not require authentication, such as a local Olla
 - [Docker & Docker Compose](https://docs.docker.com/get-docker/) for local Qdrant
 - [uv](https://github.com/astral-sh/uv) for Python dependency management
 
+Export required secrets before starting:
+
+```bash
+export OPENROUTER_API_KEY=your-key-here
+```
+
 ### 2. Copy Example Files
 
 `config.yaml` and `Makefile` are not tracked by git — copy from the provided examples and adjust to your setup:
 
 ```bash
 cp config.yaml.example config.yaml
-cp Makefile.example Makefile   # only if using local Ollama for embedding
+cp Makefile.example Makefile
 ```
 
-The default `Makefile` uses Qdrant only (remote embedding via OpenRouter). If you plan to run a local Ollama embedding model instead, copy `Makefile.example` over `Makefile` so the infra commands also manage the Ollama container.
-
-### 3. Configure
-
-Edit `config.yaml` to set your LLM model, embedding provider, and storage paths.
-
-Export required secrets before starting:
-
-```bash
-export OPENROUTER_API_KEY=your-key-here
-# if your embedding endpoint also needs a key:
-export OPENROUTER_EMBEDDING_API_KEY=your-key-here
-```
-
-### 4. Start Infrastructure and Sync Dependencies
+### 3. Start Infrastructure and Sync Dependencies
 
 First-time setup (starts Qdrant, syncs Python deps):
 
@@ -202,33 +194,15 @@ Stop local infrastructure:
 make infra-down
 ```
 
-### 5. Run and Verify
+### 5. Run
 
-Run tests:
-
-```bash
-make test
-```
-
-Start the HTTP server (also starts Qdrant if not already running):
+Start the HTTP server:
 
 ```bash
 make run
 ```
 
-Start the MCP server:
-
-```bash
-make run-mcp
-```
-
-You can also run the packaged entrypoints directly:
-
-- `uv run seahorse-http`
-- `uv run seahorse-mcp`
-
 The HTTP server listens on `127.0.0.1:8081`.
-If vector memory is enabled, `GET /health` will also report embedding and Qdrant health.
 
 ## Project Layout
 
@@ -241,15 +215,9 @@ The codebase is organized by layer:
 - `src/seahorse/prompts`: prompt templates used by extraction flows
 - `tests`: wiring, regression, and adapter tests
 
-## Notes
-
-- Seahorse is designed as a focused memory component, not a full agent framework.
-- Structured profile memory and vector memory are complementary here: profile memory stores durable facts, while vector memory helps recall prior session context.
-- For tool wording guidance and memory-tool design notes, see [docs/tool-design.md](/Users/david/codes/agent/seahorse/docs/tool-design.md) and [docs/session-vector-memory-design.md](/Users/david/codes/agent/seahorse/docs/session-vector-memory-design.md).
-
 ## FAQ
 
-### How do I use a local embedding model via Ollama?
+### 1. How do I use a local embedding model via Ollama?
 
 Seahorse ships with `nomic-embed-text` as the default, which is English-only. For mixed Chinese and English content, switch to a multilingual model.
 
@@ -308,7 +276,7 @@ Then restart Seahorse. The collection is recreated automatically on the first in
 
 ---
 
-### How do I use a third-party embedding service?
+### 2. How do I use a third-party embedding service?
 
 Seahorse supports any OpenAI-compatible embedding endpoint. No code changes are needed — only `config.yaml` and an environment variable for the API key.
 
