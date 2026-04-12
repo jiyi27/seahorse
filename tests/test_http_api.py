@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from seahorse import logger
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from seahorse import logger
 
 from seahorse.api.constants import (
     HEALTH_PATH,
@@ -12,6 +13,8 @@ from seahorse.api.constants import (
     MEMORY_SEARCH_PATH,
     USER_PROFILE_PATH,
 )
+from seahorse.api.http_errors import register_http_exception_handlers
+from seahorse.api.http_logging import register_http_logging_middleware
 from seahorse.api.http_server import create_http_app
 from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.health_service import HealthService
@@ -285,6 +288,27 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
             "An internal error occurred. Retry up to 2 times; if still failing, "
             "stop and notify the user with the message above."
         ),
+    }
+
+
+def test_unhandled_http_exception_returns_generic_error_with_request_id() -> None:
+    app = FastAPI()
+    register_http_logging_middleware(app)
+    register_http_exception_handlers(app)
+
+    @app.get("/boom")
+    def boom() -> None:
+        raise ValueError("boom")
+
+    client = TestClient(app, raise_server_exceptions=False)
+
+    response = client.get("/boom", headers={"X-Request-Id": "req-boom"})
+
+    assert response.status_code == 500
+    assert response.headers["x-request-id"] == "req-boom"
+    assert response.json() == {
+        "error": "Internal server error",
+        "type": "ValueError",
     }
 
 

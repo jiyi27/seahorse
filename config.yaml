@@ -22,9 +22,9 @@ vector_memory:
   enabled: true
   retrieval:
     # Controls how many chunks are fetched from the vector store for one search.
-    max_chunks: 10
+    max_chunks: 6
     # Controls how many conversation blocks are returned after chunk deduplication.
-    max_blocks: 5
+    max_blocks: 3
   embedding:
     provider: openai_compatible
     model: nomic-embed-text

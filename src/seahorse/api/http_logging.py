@@ -8,6 +8,8 @@ from fastapi import FastAPI, Request
 from starlette.responses import Response
 
 from seahorse import logger
+from seahorse.api.constants import REQUEST_ID_HEADER
+from seahorse.api.http_errors import build_http_exception_response
 
 
 def _decode_http_body(body: bytes) -> object:
@@ -45,7 +47,7 @@ async def _read_response_body(response: Response) -> tuple[bytes, Response]:
 def register_http_logging_middleware(app: FastAPI) -> None:
     @app.middleware("http")
     async def attach_context_id(request: Request, call_next):
-        context_id = request.headers.get("X-Request-Id") or str(uuid.uuid4())[:8]
+        context_id = request.headers.get(REQUEST_ID_HEADER) or str(uuid.uuid4())[:8]
         logger.set_context_id(context_id)
         started_at = perf_counter()
         try:
@@ -59,9 +61,12 @@ def register_http_logging_middleware(app: FastAPI) -> None:
                     "body": _decode_http_body(request_body),
                 },
             )
-            response = await call_next(request)
+            try:
+                response = await call_next(request)
+            except Exception as exc:
+                response = build_http_exception_response(request, exc)
             response_body, response = await _read_response_body(response)
-            response.headers["X-Request-Id"] = context_id
+            response.headers[REQUEST_ID_HEADER] = context_id
             logger.info(
                 "http.response.completed",
                 {
