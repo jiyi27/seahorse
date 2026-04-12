@@ -15,16 +15,19 @@ USER_PROFILE_EMPTY_HINT = (
 USER_PROFILE_UNAVAILABLE_HINT = (
     "User profile unavailable. Proceed without personalization. Do not halt."
 )
-SEARCH_MEMORY_HAS_RESULTS_HINT = (
-    "These may or may not be what you're looking for - treat them as loose leads, "
-    "not confirmed facts. If something looks relevant, bring it up naturally "
-    "rather than announcing a search result. If you're unsure, ask casually. "
-    "If two attempts don't land, let it go - tell the user you can't quite place "
-    "it and move on."
-)
+def search_memory_has_results_hint(count: int) -> str:
+    return (
+        f"Found {count} past conversation(s) from memory. Judge relevance yourself: "
+        f"use what fits, ignore what clearly doesn't. If results seem off, retry "
+        f"once with a rephrased query. After two attempts, tell the user you don't "
+        f"recall and move on — do not guess."
+    )
+
+
 SEARCH_MEMORY_NO_RESULTS_HINT = (
-    "No matching memory was found for this query. Do not guess. You may tell the "
-    "user you don't recall, or ask them directly what they are referring to."
+    "No conversation blocks matched your query in vector memory. You may retry "
+    "once with a rephrased declarative phrase. If still nothing, tell the user "
+    "you don't recall — do not guess or invent context."
 )
 SEARCH_MEMORY_FAILED_HINT = (
     "Memory search failed. Do not retry automatically. Proceed without recalled "

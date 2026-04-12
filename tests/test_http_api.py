@@ -31,7 +31,7 @@ from seahorse.domain.models import (
     UserModel,
     UserModelPatch,
 )
-from seahorse.tools.tool_hints import USER_PROFILE_SUCCESS_HINT
+from seahorse.tools.tool_hints import USER_PROFILE_SUCCESS_HINT, search_memory_has_results_hint
 from seahorse.tools.tool_names import GET_USER_PROFILE_TOOL, INGEST_TURN_TOOL, SEARCH_MEMORY_TOOL
 
 
@@ -170,13 +170,7 @@ def test_memory_search_endpoint_returns_matches() -> None:
                 "text": "User works best at night",
             }
         ],
-        "hint": (
-            "These may or may not be what you're looking for - treat them as loose "
-            "leads, not confirmed facts. If something looks relevant, bring it up "
-            "naturally rather than announcing a search result. If you're unsure, "
-            "ask casually. If two attempts don't land, let it go - tell the user "
-            "you can't quite place it and move on."
-        ),
+        "hint": search_memory_has_results_hint(1),
     }
 
 

@@ -41,10 +41,12 @@ def register_mcp_tools(server: FastMCP, container: AppContainer) -> None:
         @server.tool(
             name=SEARCH_MEMORY_TOOL,
             description=(
-                "Searches past memory for context that might be relevant to what the "
-                "user just said. Provide a short natural-language query describing "
-                "what you're trying to recall. Returns a small configured set of "
-                "results - treat them as leads, not confirmed facts."
+                "Searches past conversation memory using vector similarity — your query "
+                "is embedded and matched against stored conversation chunks by semantic "
+                "distance. Write the query as a short declarative phrase that resembles "
+                "what a stored memory might say — e.g. 'prefers dark mode' or "
+                "'learning Rust at work' — not as a question like 'what does the user "
+                "prefer?'. Retry with a rephrased query if needed, but attempt at most twice."
             ),
         )
         @wrap_mcp_tool(SEARCH_MEMORY_TOOL)

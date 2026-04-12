@@ -20,7 +20,7 @@ from seahorse.tools.search_memory import search_memory
 from seahorse.tools.tool_hints import (
     INGEST_RETRY_HINT,
     SEARCH_MEMORY_FAILED_HINT,
-    SEARCH_MEMORY_HAS_RESULTS_HINT,
+    search_memory_has_results_hint,
     SEARCH_MEMORY_NO_RESULTS_HINT,
     USER_PROFILE_EMPTY_HINT,
     USER_PROFILE_SUCCESS_HINT,
@@ -163,7 +163,7 @@ def test_search_memory_returns_matching_results() -> None:
                 "text": "User works best at night",
             }
         ],
-        "hint": SEARCH_MEMORY_HAS_RESULTS_HINT,
+        "hint": search_memory_has_results_hint(1),
     }
 
 

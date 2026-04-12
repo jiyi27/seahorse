@@ -4,8 +4,8 @@ from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.tools.contracts import SearchMemoryResult, SearchMemorySuccess, internal_error
 from seahorse.tools.tool_hints import (
     SEARCH_MEMORY_FAILED_HINT,
-    SEARCH_MEMORY_HAS_RESULTS_HINT,
     SEARCH_MEMORY_NO_RESULTS_HINT,
+    search_memory_has_results_hint,
 )
 
 
@@ -30,7 +30,7 @@ def search_memory(
             for item in results
         ],
         "hint": (
-            SEARCH_MEMORY_HAS_RESULTS_HINT
+            search_memory_has_results_hint(len(results))
             if results
             else SEARCH_MEMORY_NO_RESULTS_HINT
         ),

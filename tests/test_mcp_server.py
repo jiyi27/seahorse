@@ -95,8 +95,8 @@ def test_create_mcp_server_registers_expected_tools() -> None:
     }
     assert "Returns what is known about the user" in tools[GET_USER_PROFILE_TOOL].description
     assert f"use {SEARCH_MEMORY_TOOL} instead" in tools[GET_USER_PROFILE_TOOL].description
-    assert "Searches past memory" in tools[SEARCH_MEMORY_TOOL].description
-    assert "Provide a short natural-language query" in tools[SEARCH_MEMORY_TOOL].description
+    assert "vector similarity" in tools[SEARCH_MEMORY_TOOL].description
+    assert "declarative phrase" in tools[SEARCH_MEMORY_TOOL].description
     assert "Persists new stable facts" in tools[INGEST_TURN_TOOL].description
 
 
