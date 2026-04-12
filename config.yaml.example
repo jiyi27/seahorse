@@ -49,8 +49,12 @@ embedding:
   # Supported values: openai_compatible
   provider: openai_compatible
   # Required when vector_memory.enabled is true.
+  # Example remote model: text-embedding-3-small
+  # Example local Ollama model: nomic-embed-text:latest
   model: text-embedding-3-small
   # Required when vector_memory.enabled is true.
+  # Example remote base URL: https://api.openai.com/v1
+  # Example local Ollama base URL: http://localhost:11434/v1
   base_url: https://api.openai.com/v1
   # Required when vector_memory.enabled is true.
   # The API key is read from this environment variable at startup.

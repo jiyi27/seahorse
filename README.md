@@ -87,7 +87,7 @@ Copy [`config.yaml.example`](/Users/david/codes/agent/seahorse/config.yaml.examp
 Required environment variables:
 
 - `OPENROUTER_API_KEY`
-- `OPENAI_API_KEY` only when `vector_memory.enabled: true` and `embedding.api_key_env: OPENAI_API_KEY`
+- the environment variable named by `embedding.api_key_env` when `vector_memory.enabled: true`
 
 Startup is fail-fast. Seahorse exits during bootstrap if required settings, secrets, or prompt files are missing or invalid.
 
@@ -151,7 +151,7 @@ Required only when `vector_memory.enabled` is `true`.
 
 - `provider`: embedding provider, currently `openai_compatible`
 - `model`: embedding model name
-- `base_url`: embedding API base URL
+- `base_url`: embedding API base URL such as `https://api.openai.com/v1` or `http://localhost:11434/v1`
 - `api_key_env`: environment variable name that stores the embedding API key
 - `timeout_seconds`: embedding request timeout
 
@@ -166,11 +166,94 @@ Required only when `vector_memory.enabled` is `true`.
 
 ## Quick Start
 
-Install dependencies:
+### 1. Prerequisites
+
+- [Docker & Docker Compose](https://docs.docker.com/get-docker/) if you want local Qdrant and Ollama
+- [uv](https://github.com/astral-sh/uv) for Python dependency management
+
+### 2. Start Local Infrastructure
+
+Seahorse can use local Qdrant and Ollama in the same way as your `DocMind` setup.
+
+First-time setup:
+
+```bash
+make infra-init
+```
+
+This will:
+
+- start `qdrant` on `http://localhost:6333`
+- start `ollama` on `http://localhost:11434`
+- pull `nomic-embed-text:latest` into the Ollama container
+- sync Python dependencies
+
+Subsequent runs:
+
+```bash
+make infra-up
+```
+
+Stop local infrastructure:
+
+```bash
+make infra-down
+```
+
+If you need to pull the embedding model again:
+
+```bash
+make ollama-pull
+```
+
+You can also run project-scoped container commands directly:
+
+```bash
+docker compose exec <service> <command>
+```
+
+### 3. Configure Seahorse
+
+Install dependencies manually if you are not using `make infra-init`:
 
 ```bash
 make sync
 ```
+
+Copy [`config.yaml.example`](/Users/david/codes/agent/seahorse/config.yaml.example) to `config.yaml` and adjust the values you need.
+
+For local Ollama + Qdrant vector memory, a typical config looks like:
+
+```yaml
+vector_memory:
+  enabled: true
+  top_k: 5
+
+embedding:
+  provider: openai_compatible
+  model: nomic-embed-text:latest
+  base_url: http://localhost:11434/v1
+  api_key_env: OLLAMA_API_KEY
+  timeout_seconds: 30.0
+
+qdrant:
+  url: http://localhost:6333
+  collection_name: seahorse_memory
+```
+
+Required environment variables:
+
+- `OPENROUTER_API_KEY`
+- `OLLAMA_API_KEY` when using local Ollama through its OpenAI-compatible endpoint
+
+For local Ollama, `OLLAMA_API_KEY` can be any non-empty placeholder value because the server ignores it, for example:
+
+```bash
+export OPENROUTER_API_KEY=...
+export OLLAMA_API_KEY=ollama
+```
+
+### 4. Run and Verify
 
 Run tests:
 
@@ -194,6 +277,9 @@ You can also run the packaged entrypoints directly:
 
 - `uv run seahorse-http`
 - `uv run seahorse-mcp`
+
+The HTTP server listens on `127.0.0.1:8081`.
+If vector memory is enabled, `GET /health` will also report embedding and Qdrant health.
 
 ## Project Layout
 

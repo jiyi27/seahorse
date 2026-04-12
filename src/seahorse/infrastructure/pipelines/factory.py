@@ -1,10 +1,8 @@
 from __future__ import annotations
 
+from seahorse.infrastructure.embeddings.base import EmbeddingSettings
 from seahorse.infrastructure.config import AppConfig, SecretSettings
-from seahorse.infrastructure.embeddings.factory import (
-    EmbeddingSettings,
-    build_embedding_model,
-)
+from seahorse.infrastructure.embeddings.factory import build_embedding_model
 from seahorse.infrastructure.pipelines.noop_conversation_vector_pipeline import (
     NoopConversationVectorPipeline,
 )
