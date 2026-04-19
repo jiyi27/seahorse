@@ -7,16 +7,16 @@ import pytest
 from seahorse.api.mcp_server import build_default_mcp_server, create_mcp_server
 from seahorse.application.health_service import HealthService
 from seahorse.application.memory_search_service import MemorySearchService
-from seahorse.application.recall_service import RecallService
+from seahorse.application.user_profile_service import UserProfileService
 from seahorse.application.session_ingest_service import SessionIngestService
-from seahorse.application.user_model_merger import UserModelMerger
+from seahorse.application.user_profile_merger import UserProfileMerger
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
-from seahorse.application.user_model_renderer import UserModelRenderer
-from seahorse.bootstrap import AppContainer
-from seahorse.domain.models import UserModel, UserModelPatch
+from seahorse.application.user_profile_renderer import UserProfileRenderer
+from seahorse.bootstrap import SeahorseRuntime
+from seahorse.domain.models import UserProfile, UserProfilePatch
 from seahorse.infrastructure.config import (
     DEFAULT_CONFIG_FILE_NAME,
-    USER_MODEL_EXTRACTION_PROMPT_FILE_NAME,
+    USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME,
 )
 from seahorse.tools.tool_names import (
     GET_USER_PROFILE_TOOL,
@@ -26,19 +26,19 @@ from seahorse.tools.tool_names import (
 
 
 class FakeUserModelRepository:
-    def __init__(self, model: UserModel | None = None) -> None:
+    def __init__(self, model: UserProfile | None = None) -> None:
         self.model = model
 
-    def load(self) -> UserModel | None:
+    def load(self) -> UserProfile | None:
         return self.model
 
-    def save(self, model: UserModel) -> None:
+    def save(self, model: UserProfile) -> None:
         self.model = model
 
 
 class FakeExtractor:
-    def extract(self, conversation, current_user_model) -> UserModelPatch:
-        return UserModelPatch(
+    def extract(self, conversation, current_user_model) -> UserProfilePatch:
+        return UserProfilePatch(
             summary="Prefers structured answers.",
             preferences_to_add=["Structured answers"],
         )
@@ -56,23 +56,23 @@ class FakeVectorSearchService:
 
 def test_create_mcp_server_registers_expected_tools() -> None:
     user_model_repository = FakeUserModelRepository()
-    recall_service = RecallService(user_model_repository)
+    recall_service = UserProfileService(user_model_repository)
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
             user_model_repository=FakeUserModelRepository(),
             extractor=FakeExtractor(),
-            merger=UserModelMerger(),
+            merger=UserProfileMerger(),
         ),
         FakeConversationVectorPipeline(),
     )
-    container = AppContainer(
+    runtime = SeahorseRuntime(
         health_service=HealthService(),
-        recall_service=recall_service,
+        user_profile_service=recall_service,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),
         session_ingest_service=session_ingest_service,
-        user_model_renderer=UserModelRenderer(),
+        user_profile_renderer=UserProfileRenderer(),
         enabled_mcp_tools=frozenset(
             {
                 GET_USER_PROFILE_TOOL,
@@ -82,7 +82,7 @@ def test_create_mcp_server_registers_expected_tools() -> None:
         ),
     )
 
-    server = create_mcp_server(container)
+    server = create_mcp_server(runtime)
 
     manager = server._tool_manager  # noqa: SLF001
     assert manager is not None
@@ -102,27 +102,27 @@ def test_create_mcp_server_registers_expected_tools() -> None:
 
 def test_create_mcp_server_registers_only_enabled_tools() -> None:
     user_model_repository = FakeUserModelRepository()
-    recall_service = RecallService(user_model_repository)
+    recall_service = UserProfileService(user_model_repository)
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
             user_model_repository=FakeUserModelRepository(),
             extractor=FakeExtractor(),
-            merger=UserModelMerger(),
+            merger=UserProfileMerger(),
         ),
         FakeConversationVectorPipeline(),
     )
-    container = AppContainer(
+    runtime = SeahorseRuntime(
         health_service=HealthService(),
-        recall_service=recall_service,
+        user_profile_service=recall_service,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),
         session_ingest_service=session_ingest_service,
-        user_model_renderer=UserModelRenderer(),
+        user_profile_renderer=UserProfileRenderer(),
         enabled_mcp_tools=frozenset({SEARCH_MEMORY_TOOL}),
     )
 
-    server = create_mcp_server(container)
+    server = create_mcp_server(runtime)
 
     manager = server._tool_manager  # noqa: SLF001
     assert manager is not None
@@ -137,7 +137,7 @@ def test_build_default_mcp_server_requires_provider_env(
 
     prompt_dir = tmp_path / "src" / "seahorse" / "prompts"
     prompt_dir.mkdir(parents=True)
-    (prompt_dir / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME).write_text(
+    (prompt_dir / USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME).write_text(
         "Return JSON.",
         encoding="utf-8",
     )

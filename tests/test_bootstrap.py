@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from seahorse.bootstrap import build_app_container
+from seahorse.bootstrap import build_runtime
 from seahorse.constants import APP_NAME, OPENROUTER_BASE_URL, OPENROUTER_PROVIDER
 from seahorse.domain.models import ProviderSettings
 from seahorse.infrastructure.config import (
@@ -16,8 +16,8 @@ from seahorse.infrastructure.config import (
     DEFAULT_LOG_DIR,
     DEFAULT_LOG_LEVEL,
     SecretSettings,
-    USER_MODEL_EXTRACTION_PROMPT_FILE_NAME,
-    USER_MODEL_FILE_NAME,
+    USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME,
+    USER_PROFILE_FILE_NAME,
     load_app_config_from_yaml,
     load_secrets_from_env,
 )
@@ -36,7 +36,7 @@ def write_minimal_runtime_files(
 ) -> None:
     prompt_dir = project_root / "src" / "seahorse" / "prompts"
     prompt_dir.mkdir(parents=True)
-    (prompt_dir / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME).write_text(
+    (prompt_dir / USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME).write_text(
         "Return JSON.",
         encoding="utf-8",
     )
@@ -213,11 +213,11 @@ def test_app_paths_resolve_expected_locations(tmp_path: Path) -> None:
     paths = AppPaths.from_config(tmp_path, config)
 
     assert paths.storage.data_dir == tmp_path / "var" / "memory"
-    assert paths.storage.user_model_path == tmp_path / "var" / "memory" / USER_MODEL_FILE_NAME
+    assert paths.storage.user_model_path == tmp_path / "var" / "memory" / USER_PROFILE_FILE_NAME
     assert paths.prompt_dir == tmp_path / "src" / "seahorse" / "prompts"
     assert (
-        paths.user_model_extraction_prompt_path
-        == paths.prompt_dir / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
+            paths.user_profile_extraction_prompt_path
+            == paths.prompt_dir / USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME
     )
 
 
@@ -264,7 +264,7 @@ def test_build_provider_settings_requires_model_for_openrouter(
         )
 
 
-def test_build_app_container_wires_services(
+def test_build_runtime_wires_services(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
@@ -278,19 +278,19 @@ def test_build_app_container_wires_services(
         ),
     )
 
-    container = build_app_container(tmp_path)
+    runtime = build_runtime(tmp_path)
 
-    assert container.recall_service is not None
-    assert container.memory_search_service is not None
-    assert container.session_ingest_service is not None
-    assert container.enabled_mcp_tools == frozenset(DEFAULT_ENABLED_MCP_TOOLS)
+    assert runtime.user_profile_service is not None
+    assert runtime.memory_search_service is not None
+    assert runtime.session_ingest_service is not None
+    assert runtime.enabled_mcp_tools == frozenset(DEFAULT_ENABLED_MCP_TOOLS)
     assert isinstance(
-        container.session_ingest_service._conversation_vector_pipeline,
+        runtime.session_ingest_service._conversation_vector_pipeline,
         NoopConversationVectorPipeline,
     )
 
 
-def test_build_app_container_fails_fast_when_provider_model_missing(
+def test_build_runtime_fails_fast_when_provider_model_missing(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
@@ -303,10 +303,10 @@ def test_build_app_container_fails_fast_when_provider_model_missing(
     )
 
     with pytest.raises(RuntimeError, match="provider.model"):
-        build_app_container(tmp_path)
+        build_runtime(tmp_path)
 
 
-def test_build_app_container_fails_fast_when_vector_memory_enabled_without_qdrant(
+def test_build_runtime_fails_fast_when_vector_memory_enabled_without_qdrant(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
     monkeypatch.setenv("OPENROUTER_API_KEY", "test-key")
@@ -327,7 +327,7 @@ def test_build_app_container_fails_fast_when_vector_memory_enabled_without_qdran
     )
 
     with pytest.raises(RuntimeError, match="vector_memory.store.url"):
-        build_app_container(tmp_path)
+        build_runtime(tmp_path)
 
 def test_app_config_requires_nested_vector_memory_sections() -> None:
     config = AppConfig.model_validate(

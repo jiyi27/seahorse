@@ -19,6 +19,6 @@ class SessionIngestService:
         result = self._user_profile_ingest_service.ingest(conversation)
         self._conversation_vector_pipeline.process(conversation)
         return SessionIngestResult(
-            user_model_updated=result.user_model_updated,
+            user_profile_updated=result.user_profile_updated,
             vector_pipeline_processed=True,
         )

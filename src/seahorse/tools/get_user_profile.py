@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from seahorse.application.recall_service import RecallService
-from seahorse.domain.models import UserModel
+from seahorse.application.user_profile_service import UserProfileService
+from seahorse.domain.models import UserProfile
 from seahorse.tools.contracts import (
     GetUserProfileResult,
     GetUserProfileSuccess,
@@ -15,7 +15,7 @@ from seahorse.tools.tool_hints import (
 )
 
 
-def get_user_profile(service: RecallService) -> GetUserProfileResult:
+def get_user_profile(service: UserProfileService) -> GetUserProfileResult:
     try:
         user_model = service.get_user_model()
     except RuntimeError as exc:
@@ -31,35 +31,35 @@ def get_user_profile(service: RecallService) -> GetUserProfileResult:
 
     payload: GetUserProfileSuccess = {
         "success": True,
-        "profile": _serialize_user_model(user_model),
+        "profile": _serialize_user_profile(user_model),
         "hint": USER_PROFILE_SUCCESS_HINT,
     }
     return payload
 
 
-def _serialize_user_model(user_model: UserModel) -> UserProfilePayload:
+def _serialize_user_profile(user_profile: UserProfile) -> UserProfilePayload:
     return {
-        "summary": user_model.summary,
+        "summary": user_profile.summary,
         "facts": [
             {
                 "id": fact.id,
                 "category": fact.category,
                 "text": fact.text,
             }
-            for fact in user_model.facts
+            for fact in user_profile.facts
         ],
         "preferences": [
             {
                 "id": preference.id,
                 "text": preference.text,
             }
-            for preference in user_model.preferences
+            for preference in user_profile.preferences
         ],
         "constraints": [
             {
                 "id": constraint.id,
                 "text": constraint.text,
             }
-            for constraint in user_model.constraints
+            for constraint in user_profile.constraints
         ],
     }

@@ -18,37 +18,37 @@ from seahorse.api.http_logging import register_http_logging_middleware
 from seahorse.api.http_server import create_http_app
 from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.health_service import HealthService
-from seahorse.application.recall_service import RecallService
+from seahorse.application.user_profile_service import UserProfileService
 from seahorse.application.session_ingest_service import SessionIngestService
-from seahorse.application.user_model_merger import UserModelMerger
+from seahorse.application.user_profile_merger import UserProfileMerger
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
-from seahorse.application.user_model_renderer import UserModelRenderer
-from seahorse.bootstrap import AppContainer
+from seahorse.application.user_profile_renderer import UserProfileRenderer
+from seahorse.bootstrap import SeahorseRuntime
 from seahorse.domain.models import (
     FactItem,
     MemorySearchResultItem,
     TextItem,
-    UserModel,
-    UserModelPatch,
+    UserProfile,
+    UserProfilePatch,
 )
 from seahorse.tools.tool_hints import USER_PROFILE_SUCCESS_HINT, search_memory_has_results_hint
 from seahorse.tools.tool_names import GET_USER_PROFILE_TOOL, INGEST_TURN_TOOL, SEARCH_MEMORY_TOOL
 
 
 class FakeUserModelRepository:
-    def __init__(self, model: UserModel | None = None) -> None:
+    def __init__(self, model: UserProfile | None = None) -> None:
         self.model = model
 
-    def load(self) -> UserModel | None:
+    def load(self) -> UserProfile | None:
         return self.model
 
-    def save(self, model: UserModel) -> None:
+    def save(self, model: UserProfile) -> None:
         self.model = model
 
 
 class FakeExtractor:
-    def extract(self, conversation, current_user_model) -> UserModelPatch:
-        return UserModelPatch(
+    def extract(self, conversation, current_user_model) -> UserProfilePatch:
+        return UserProfilePatch(
             summary="Prefers concise answers.",
             preferences_to_add=["Concise answers"],
         )
@@ -71,12 +71,12 @@ class FakeVectorSearchService:
 
 
 class FailingExtractor:
-    def extract(self, conversation, current_user_model) -> UserModelPatch:
+    def extract(self, conversation, current_user_model) -> UserProfilePatch:
         raise RuntimeError("Extractor exploded")
 
 
-def build_user_model() -> UserModel:
-    return UserModel(
+def build_user_model() -> UserProfile:
+    return UserProfile(
         summary="Prefers concise answers.",
         facts=[
             FactItem(
@@ -91,23 +91,23 @@ def build_user_model() -> UserModel:
 
 def build_test_client() -> TestClient:
     user_model_repository = FakeUserModelRepository(build_user_model())
-    recall_service = RecallService(user_model_repository)
+    recall_service = UserProfileService(user_model_repository)
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
             user_model_repository=FakeUserModelRepository(),
             extractor=FakeExtractor(),
-            merger=UserModelMerger(),
+            merger=UserProfileMerger(),
         ),
         FakeConversationVectorPipeline(),
     )
-    container = AppContainer(
+    runtime = SeahorseRuntime(
         health_service=HealthService(),
-        recall_service=recall_service,
+        user_profile_service=recall_service,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),
         session_ingest_service=session_ingest_service,
-        user_model_renderer=UserModelRenderer(),
+        user_profile_renderer=UserProfileRenderer(),
         enabled_mcp_tools=frozenset(
             {
                 GET_USER_PROFILE_TOOL,
@@ -116,7 +116,7 @@ def build_test_client() -> TestClient:
             }
         ),
     )
-    return TestClient(create_http_app(container))
+    return TestClient(create_http_app(runtime))
 
 
 def _read_info_log_records(log_dir: Path) -> list[dict[str, object]]:
@@ -237,23 +237,23 @@ def test_http_middleware_logs_request_and_response_bodies(tmp_path: Path) -> Non
 
 def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
     user_model_repository = FakeUserModelRepository()
-    recall_service = RecallService(user_model_repository)
+    recall_service = UserProfileService(user_model_repository)
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
             user_model_repository=FakeUserModelRepository(),
             extractor=FailingExtractor(),
-            merger=UserModelMerger(),
+            merger=UserProfileMerger(),
         ),
         FakeConversationVectorPipeline(),
     )
-    container = AppContainer(
+    runtime = SeahorseRuntime(
         health_service=HealthService(),
-        recall_service=recall_service,
+        user_profile_service=recall_service,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),
         session_ingest_service=session_ingest_service,
-        user_model_renderer=UserModelRenderer(),
+        user_profile_renderer=UserProfileRenderer(),
         enabled_mcp_tools=frozenset(
             {
                 GET_USER_PROFILE_TOOL,
@@ -262,7 +262,7 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
             }
         ),
     )
-    client = TestClient(create_http_app(container), raise_server_exceptions=False)
+    client = TestClient(create_http_app(runtime), raise_server_exceptions=False)
 
     response = client.post(
         MEMORY_INGEST_PATH,
@@ -353,23 +353,23 @@ def test_memory_ingest_endpoint_rejects_content_and_messages_together() -> None:
 
 def test_user_profile_endpoint_returns_null_when_user_model_missing() -> None:
     user_model_repository = FakeUserModelRepository()
-    recall_service = RecallService(user_model_repository)
+    recall_service = UserProfileService(user_model_repository)
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
             user_model_repository=FakeUserModelRepository(),
             extractor=FakeExtractor(),
-            merger=UserModelMerger(),
+            merger=UserProfileMerger(),
         ),
         FakeConversationVectorPipeline(),
     )
-    container = AppContainer(
+    runtime = SeahorseRuntime(
         health_service=HealthService(),
-        recall_service=recall_service,
+        user_profile_service=recall_service,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),
         session_ingest_service=session_ingest_service,
-        user_model_renderer=UserModelRenderer(),
+        user_profile_renderer=UserProfileRenderer(),
         enabled_mcp_tools=frozenset(
             {
                 GET_USER_PROFILE_TOOL,
@@ -378,7 +378,7 @@ def test_user_profile_endpoint_returns_null_when_user_model_missing() -> None:
             }
         ),
     )
-    client = TestClient(create_http_app(container))
+    client = TestClient(create_http_app(runtime))
 
     response = client.get(USER_PROFILE_PATH)
 

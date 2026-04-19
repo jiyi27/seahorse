@@ -5,11 +5,11 @@ import json
 from pydantic import ValidationError
 
 from seahorse import logger
-from seahorse.domain.models import UserModelPatch
+from seahorse.domain.models import UserProfilePatch
 
 
-class UserModelPatchParser:
-    def parse(self, raw_output: str) -> UserModelPatch:
+class UserProfilePatchParser:
+    def parse(self, raw_output: str) -> UserProfilePatch:
         normalized = raw_output.strip()
         if normalized.startswith("```"):
             normalized = self._strip_code_fence(normalized)
@@ -21,12 +21,13 @@ class UserModelPatchParser:
             raise RuntimeError("LLM extractor returned invalid JSON") from exc
 
         try:
-            return UserModelPatch.model_validate(payload)
+            return UserProfilePatch.model_validate(payload)
         except ValidationError as exc:
             logger.error("extractor.output.invalid_schema", {}, exc=exc)
             raise RuntimeError("LLM extractor returned an invalid patch payload") from exc
 
-    def _strip_code_fence(self, content: str) -> str:
+    @staticmethod
+    def _strip_code_fence(content: str) -> str:
         lines = content.splitlines()
         if len(lines) >= 2 and lines[0].startswith("```") and lines[-1].strip() == "```":
             return "\n".join(lines[1:-1]).strip()

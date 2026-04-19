@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import NoReturn
+from typing import NoReturn, Any
 
 import yaml
 from pydantic import (
@@ -32,8 +32,8 @@ DEFAULT_EMBEDDING_PROVIDER = OPENAI_COMPATIBLE_EMBEDDING_PROVIDER
 DEFAULT_EMBEDDING_TIMEOUT_SECONDS = 30.0
 DEFAULT_QDRANT_COLLECTION_NAME = "seahorse_memory"
 SUPPORTED_LOG_LEVELS = frozenset({"debug", "info", "warning", "error"})
-USER_MODEL_FILE_NAME = "user_model.json"
-USER_MODEL_EXTRACTION_PROMPT_FILE_NAME = "user_model_extraction.md"
+USER_PROFILE_FILE_NAME = "user_model.json"
+USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME = "user_model_extraction.md"
 DEFAULT_ENABLED_MCP_TOOLS = tuple(sorted(ALL_TOOL_NAMES))
 
 
@@ -290,7 +290,7 @@ class StoragePaths:
         data_dir = _resolve_project_path(project_root, storage_config.data_dir)
         return cls(
             data_dir=data_dir,
-            user_model_path=data_dir / USER_MODEL_FILE_NAME,
+            user_model_path=data_dir / USER_PROFILE_FILE_NAME,
         )
 
 
@@ -299,7 +299,7 @@ class AppPaths:
     project_root: Path
     storage: StoragePaths
     prompt_dir: Path
-    user_model_extraction_prompt_path: Path
+    user_profile_extraction_prompt_path: Path
 
     @classmethod
     def from_config(cls, project_root: Path, app_config: AppConfig) -> "AppPaths":
@@ -309,8 +309,8 @@ class AppPaths:
             project_root=project_root,
             storage=storage_paths,
             prompt_dir=prompt_dir,
-            user_model_extraction_prompt_path=(
-                prompt_dir / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
+            user_profile_extraction_prompt_path=(
+                    prompt_dir / USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME
             ),
         )
 
@@ -365,8 +365,8 @@ def load_app_config_from_yaml(path: Path) -> AppConfig:
 
 
 def validate_app_paths(paths: AppPaths) -> None:
-    if not paths.user_model_extraction_prompt_path.exists():
+    if not paths.user_profile_extraction_prompt_path.exists():
         _raise_config_error(
             "Missing required prompt file: "
-            f"{paths.user_model_extraction_prompt_path}"
+            f"{paths.user_profile_extraction_prompt_path}"
         )

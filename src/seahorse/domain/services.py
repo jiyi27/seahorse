@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from typing import Protocol
 
-from seahorse.domain.models import ConversationInput, UserModel, UserModelPatch
+from seahorse.domain.models import ConversationInput, UserProfile, UserProfilePatch
 
 
-class UserModelExtractor(Protocol):
+class UserProfileExtractor(Protocol):
     def extract(
         self,
         conversation: ConversationInput,
-        current_user_model: UserModel | None,
-    ) -> UserModelPatch: ...
+        current_user_profile: UserProfile | None,
+    ) -> UserProfilePatch: ...
 
 
 class ConversationVectorPipeline(Protocol):

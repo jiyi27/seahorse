@@ -11,10 +11,10 @@ from seahorse.domain.models import (
     FactItem,
     Message,
     ProviderSettings,
-    UserModel,
+    UserProfile,
 )
-from seahorse.infrastructure.config import USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
-from seahorse.infrastructure.extractors.llm_user_model_extractor import (
+from seahorse.infrastructure.config import USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME
+from seahorse.infrastructure.extractors.llm_user_profile_extractor import (
     LLMUserModelExtractor,
 )
 from seahorse.infrastructure.providers.base import LLMProvider
@@ -36,7 +36,7 @@ class FakeProvider(LLMProvider):
 
 
 def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Path) -> None:
-    prompt_path = tmp_path / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
+    prompt_path = tmp_path / USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME
     prompt_path.write_text("Extract stable user information.", encoding="utf-8")
     provider = FakeProvider(
         (
@@ -55,7 +55,7 @@ def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Pa
             source="mcp",
             messages=[Message(role="user", text="Please keep answers concise. I use Python.")],
         ),
-        current_user_model=UserModel(
+        current_user_model=UserProfile(
             summary="Already knows some basics.",
             facts=[FactItem(id="fact_001", category="identity", text="Uses Rust")],
         ),
@@ -74,7 +74,7 @@ def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Pa
 
 
 def test_llm_user_model_extractor_prompt_uses_user_messages_only(tmp_path: Path) -> None:
-    prompt_path = tmp_path / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
+    prompt_path = tmp_path / USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME
     prompt_path.write_text("Extract stable user information.", encoding="utf-8")
     provider = FakeProvider(
         (
@@ -103,7 +103,7 @@ def test_llm_user_model_extractor_prompt_uses_user_messages_only(tmp_path: Path)
 
 
 def test_llm_user_model_extractor_rejects_invalid_json(tmp_path: Path) -> None:
-    prompt_path = tmp_path / USER_MODEL_EXTRACTION_PROMPT_FILE_NAME
+    prompt_path = tmp_path / USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME
     prompt_path.write_text("Extract stable user information.", encoding="utf-8")
     provider = FakeProvider("not-json")
     extractor = LLMUserModelExtractor(provider=provider, prompt_path=prompt_path)

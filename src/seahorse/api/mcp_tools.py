@@ -5,7 +5,7 @@ from typing import Annotated
 from mcp.server.fastmcp import FastMCP
 
 from seahorse.api.mcp_logging import wrap_mcp_tool
-from seahorse.bootstrap import AppContainer
+from seahorse.bootstrap import SeahorseRuntime
 from seahorse.tools.contracts import (
     GetUserProfileResult,
     IngestTurnResult,
@@ -22,8 +22,8 @@ from seahorse.tools.tool_names import (
 )
 
 
-def register_mcp_tools(server: FastMCP, container: AppContainer) -> None:
-    if GET_USER_PROFILE_TOOL in container.enabled_mcp_tools:
+def register_mcp_tools(server: FastMCP, runtime: SeahorseRuntime) -> None:
+    if GET_USER_PROFILE_TOOL in runtime.enabled_mcp_tools:
         @server.tool(
             name=GET_USER_PROFILE_TOOL,
             description=(
@@ -35,9 +35,9 @@ def register_mcp_tools(server: FastMCP, container: AppContainer) -> None:
         )
         @wrap_mcp_tool(GET_USER_PROFILE_TOOL)
         def get_user_profile_tool() -> GetUserProfileResult:
-            return get_user_profile(container.recall_service)
+            return get_user_profile(runtime.user_profile_service)
 
-    if SEARCH_MEMORY_TOOL in container.enabled_mcp_tools:
+    if SEARCH_MEMORY_TOOL in runtime.enabled_mcp_tools:
         @server.tool(
             name=SEARCH_MEMORY_TOOL,
             description=(
@@ -54,11 +54,11 @@ def register_mcp_tools(server: FastMCP, container: AppContainer) -> None:
             query: Annotated[str, "Short natural-language recall query"],
         ) -> SearchMemoryResult:
             return search_memory(
-                container.memory_search_service,
+                runtime.memory_search_service,
                 query=query,
             )
 
-    if INGEST_TURN_TOOL in container.enabled_mcp_tools:
+    if INGEST_TURN_TOOL in runtime.enabled_mcp_tools:
         @server.tool(
             name=INGEST_TURN_TOOL,
             description=(
@@ -75,7 +75,7 @@ def register_mcp_tools(server: FastMCP, container: AppContainer) -> None:
             session_id: str | None = None,
         ) -> IngestTurnResult:
             return ingest_turn(
-                container.session_ingest_service,
+                runtime.session_ingest_service,
                 content=content,
                 messages=messages,
                 source="mcp",

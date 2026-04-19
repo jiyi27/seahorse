@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from seahorse.domain.models import FactCategory, FactItem, TextItem, UserModel
+from seahorse.domain.models import FactCategory, FactItem, TextItem, UserProfile
 
 FACT_CATEGORY_TITLES: dict[FactCategory, str] = {
     "identity": "Identity",
@@ -13,25 +13,25 @@ FACT_CATEGORY_TITLES: dict[FactCategory, str] = {
 }
 
 
-class UserModelRenderer:
+class UserProfileRenderer:
     _SUMMARY_HEADER = "## Summary"
     _FACTS_HEADER = "## Facts"
     _PREFERENCES_HEADER = "## Preferences"
     _CONSTRAINTS_HEADER = "## Constraints"
 
-    def render_markdown(self, user_model: UserModel) -> str:
+    def render_markdown(self, user_profile: UserProfile) -> str:
         parts: list[str] = []
 
-        summary = user_model.summary.strip()
+        summary = user_profile.summary.strip()
         if summary:
             parts.extend([self._SUMMARY_HEADER, summary])
 
-        parts.extend(self._render_facts_section(user_model.facts))
+        parts.extend(self._render_facts_section(user_profile.facts))
         parts.extend(
-            self._render_text_section(self._PREFERENCES_HEADER, user_model.preferences)
+            self._render_text_section(self._PREFERENCES_HEADER, user_profile.preferences)
         )
         parts.extend(
-            self._render_text_section(self._CONSTRAINTS_HEADER, user_model.constraints)
+            self._render_text_section(self._CONSTRAINTS_HEADER, user_profile.constraints)
         )
 
         if not parts:

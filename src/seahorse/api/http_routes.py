@@ -12,7 +12,7 @@ from seahorse.api.constants import (
     MEMORY_SEARCH_PATH,
     USER_PROFILE_PATH,
 )
-from seahorse.bootstrap import AppContainer
+from seahorse.bootstrap import SeahorseRuntime
 from seahorse.domain.models import Message
 from seahorse.tools.contracts import (
     GetUserProfileResult,
@@ -43,14 +43,14 @@ def _http_tool_response(
     return _error_response(payload)
 
 
-def register_http_routes(app: FastAPI, container: AppContainer) -> None:
+def register_http_routes(app: FastAPI, runtime: SeahorseRuntime) -> None:
     @app.get(HEALTH_PATH)
     def health() -> dict[str, object]:
-        return container.health_service.check()
+        return runtime.health_service.check()
 
     @app.get(USER_PROFILE_PATH)
     def get_user_profile_endpoint() -> JSONResponse:
-        return _http_tool_response(get_user_profile(container.recall_service))
+        return _http_tool_response(get_user_profile(runtime.user_profile_service))
 
     @app.get(MEMORY_SEARCH_PATH)
     def get_memory_search(
@@ -58,7 +58,7 @@ def register_http_routes(app: FastAPI, container: AppContainer) -> None:
     ) -> JSONResponse:
         return _http_tool_response(
             search_memory(
-                container.memory_search_service,
+                runtime.memory_search_service,
                 query=query,
             )
         )
@@ -67,7 +67,7 @@ def register_http_routes(app: FastAPI, container: AppContainer) -> None:
     def post_memory_ingest(request: IngestRequest) -> JSONResponse:
         return _http_tool_response(
             ingest_turn(
-                container.session_ingest_service,
+                runtime.session_ingest_service,
                 content=request.content,
                 messages=request.messages,
                 source="http",

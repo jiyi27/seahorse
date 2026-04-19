@@ -3,16 +3,16 @@ from __future__ import annotations
 import pytest
 
 from seahorse.application.memory_search_service import MemorySearchService
-from seahorse.application.recall_service import RecallService
+from seahorse.application.user_profile_service import UserProfileService
 from seahorse.application.session_ingest_service import SessionIngestService
-from seahorse.application.user_model_merger import UserModelMerger
+from seahorse.application.user_profile_merger import UserProfileMerger
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
 from seahorse.domain.models import (
     FactItem,
     MemorySearchResultItem,
     TextItem,
-    UserModel,
-    UserModelPatch,
+    UserProfile,
+    UserProfilePatch,
 )
 from seahorse.tools.get_user_profile import get_user_profile
 from seahorse.tools.ingest_turn import ingest_turn
@@ -29,19 +29,19 @@ from seahorse.tools.tool_hints import (
 
 
 class FakeUserModelRepository:
-    def __init__(self, model: UserModel | None = None) -> None:
+    def __init__(self, model: UserProfile | None = None) -> None:
         self.model = model
 
-    def load(self) -> UserModel | None:
+    def load(self) -> UserProfile | None:
         return self.model
 
-    def save(self, model: UserModel) -> None:
+    def save(self, model: UserProfile) -> None:
         self.model = model
 
 
 class FakeExtractor:
-    def extract(self, conversation, current_user_model) -> UserModelPatch:
-        return UserModelPatch(
+    def extract(self, conversation, current_user_model) -> UserProfilePatch:
+        return UserProfilePatch(
             summary="Prefers direct answers.",
             preferences_to_add=["Direct answers"],
         )
@@ -61,10 +61,10 @@ class FakeVectorSearchService:
 
 
 class FailingUserModelRepository:
-    def load(self) -> UserModel | None:
+    def load(self) -> UserProfile | None:
         raise RuntimeError("User model storage unavailable")
 
-    def save(self, model: UserModel) -> None:
+    def save(self, model: UserProfile) -> None:
         self.model = model
 
 
@@ -73,14 +73,14 @@ def build_session_ingest_service() -> SessionIngestService:
         UserProfileIngestService(
             user_model_repository=FakeUserModelRepository(),
             extractor=FakeExtractor(),
-            merger=UserModelMerger(),
+            merger=UserProfileMerger(),
         ),
         FakeConversationVectorPipeline(),
     )
 
 
-def build_user_model() -> UserModel:
-    return UserModel(
+def build_user_model() -> UserProfile:
+    return UserProfile(
         summary="Prefers direct answers.",
         facts=[
             FactItem(
@@ -95,7 +95,7 @@ def build_user_model() -> UserModel:
 
 
 def test_get_user_profile_returns_structured_profile() -> None:
-    service = RecallService(FakeUserModelRepository(build_user_model()))
+    service = UserProfileService(FakeUserModelRepository(build_user_model()))
 
     payload = get_user_profile(service)
 
@@ -128,7 +128,7 @@ def test_get_user_profile_returns_structured_profile() -> None:
 
 
 def test_get_user_profile_returns_null_when_user_model_missing() -> None:
-    service = RecallService(FakeUserModelRepository())
+    service = UserProfileService(FakeUserModelRepository())
 
     payload = get_user_profile(service)
 
@@ -192,7 +192,7 @@ def test_ingest_turn_normalizes_messages_and_returns_result() -> None:
 
 
 def test_get_user_profile_returns_structured_internal_error_on_runtime_failure() -> None:
-    service = RecallService(FailingUserModelRepository())
+    service = UserProfileService(FailingUserModelRepository())
 
     payload = get_user_profile(service)
 

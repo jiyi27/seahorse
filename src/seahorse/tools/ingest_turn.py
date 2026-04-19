@@ -42,6 +42,6 @@ def ingest_turn(
 
     payload: IngestTurnSuccess = {
         "success": True,
-        "user_model_updated": result.user_model_updated,
+        "user_model_updated": result.user_profile_updated,
     }
     return payload

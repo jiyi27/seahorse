@@ -31,7 +31,7 @@ class TextItem(BaseModel):
     text: str
 
 
-class UserModel(BaseModel):
+class UserProfile(BaseModel):
     summary: str = ""
     facts: list[FactItem] = Field(default_factory=list)
     preferences: list[TextItem] = Field(default_factory=list)
@@ -77,7 +77,7 @@ class FactPatchItem(BaseModel):
     text: str
 
 
-class UserModelPatch(BaseModel):
+class UserProfilePatch(BaseModel):
     summary: str = ""
     facts_to_add: list[FactPatchItem] = Field(default_factory=list)
     fact_ids_to_remove: list[str] = Field(default_factory=list)
@@ -88,12 +88,12 @@ class UserModelPatch(BaseModel):
 
 
 class IngestResult(BaseModel):
-    user_model: UserModel
-    user_model_updated: bool
+    user_profile: UserProfile
+    user_profile_updated: bool
 
 
 class SessionIngestResult(BaseModel):
-    user_model_updated: bool
+    user_profile_updated: bool
     vector_pipeline_processed: bool
 
 

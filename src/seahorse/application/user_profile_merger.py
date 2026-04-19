@@ -2,24 +2,25 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from seahorse.domain.models import FactItem, FactPatchItem, TextItem, UserModel, UserModelPatch
+from seahorse.application.user_profile_service import UserProfileService
+from seahorse.domain.models import FactItem, FactPatchItem, TextItem, UserProfile, UserProfilePatch
 
 
 @dataclass(frozen=True)
 class MergeResult:
-    user_model: UserModel
+    user_profile: UserProfile
     changed: bool
 
 
-class UserModelMerger:
+class UserProfileMerger:
     """Merge structured patches into the persisted user model."""
 
     _FACT_PREFIX = "fact"
     _PREFERENCE_PREFIX = "preference"
     _CONSTRAINT_PREFIX = "constraint"
 
-    def merge(self, current: UserModel | None, patch: UserModelPatch) -> MergeResult:
-        baseline = current or UserModel()
+    def merge(self, current: UserProfile | None, patch: UserProfilePatch) -> MergeResult:
+        baseline = current or UserProfile()
 
         summary = patch.summary.strip() or baseline.summary
         facts = self._merge_facts(
@@ -40,7 +41,7 @@ class UserModelMerger:
             self._CONSTRAINT_PREFIX,
         )
 
-        user_model = UserModel(
+        user_model = UserProfile(
             summary=summary,
             facts=facts,
             preferences=preferences,
@@ -51,8 +52,8 @@ class UserModelMerger:
             changed = current != user_model
 
         if not changed:
-            return MergeResult(user_model=baseline, changed=False)
-        return MergeResult(user_model=user_model, changed=True)
+            return MergeResult(user_profile=baseline, changed=False)
+        return MergeResult(user_profile=user_model, changed=True)
 
     def _merge_facts(
         self,

@@ -2,25 +2,28 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from seahorse import logger
-from seahorse.application.memory_search_service import MemorySearchService
-from seahorse.application.recall_service import RecallService
-from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.health_service import HealthService
-from seahorse.application.user_model_merger import UserModelMerger
+from seahorse.application.memory_search_service import MemorySearchService
+from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
-from seahorse.application.user_model_renderer import UserModelRenderer
+from seahorse.application.user_profile_merger import UserProfileMerger
+from seahorse.application.user_profile_renderer import UserProfileRenderer
+from seahorse.application.user_profile_service import UserProfileService
 from seahorse.retrieval.vector_health_service import VectorHealthService
 from seahorse.retrieval.vector_search_service import VectorSearchService
 from seahorse.infrastructure.config import (
+    AppConfig,
     AppPaths,
     DEFAULT_CONFIG_FILE_NAME,
+    SecretSettings,
     load_app_config_from_yaml,
     load_secrets_from_env,
     validate_app_paths,
 )
-from seahorse.infrastructure.extractors.llm_user_model_extractor import (
+from seahorse.infrastructure.extractors.llm_user_profile_extractor import (
     LLMUserModelExtractor,
 )
 from seahorse.infrastructure.pipelines.factory import (
@@ -30,45 +33,72 @@ from seahorse.infrastructure.pipelines.factory import (
 from seahorse.infrastructure.providers.config import build_provider_settings
 from seahorse.infrastructure.providers.factory import build_llm_provider
 from seahorse.infrastructure.repositories.user_model_json import (
-    JSONUserModelRepository,
+    JSONUserProfileRepository,
 )
 
 
 @dataclass(frozen=True)
-class AppContainer:
+class SeahorseRuntime:
     health_service: HealthService
-    recall_service: RecallService
+    user_profile_service: UserProfileService
     memory_search_service: MemorySearchService
     session_ingest_service: SessionIngestService
-    user_model_renderer: UserModelRenderer
+    user_profile_renderer: UserProfileRenderer
     enabled_mcp_tools: frozenset[str]
 
 
-def _configure_logging(project_root: Path, app_config) -> None:
+@dataclass(frozen=True)
+class RuntimeBootstrapContext:
+    app_config: AppConfig
+    secrets: SecretSettings
+    paths: AppPaths
+
+
+def _configure_logging(project_root: Path, app_config: AppConfig) -> None:
     log_dir = Path(app_config.logger.log_dir)
     if not log_dir.is_absolute():
         log_dir = project_root / log_dir
     logger.configure(log_dir=log_dir, level=app_config.logger.log_level)
 
 
+def _load_bootstrap_context(
+    project_root: Path,
+    config_path: Path | None = None,
+) -> RuntimeBootstrapContext:
+    resolved_config_path = config_path or project_root / DEFAULT_CONFIG_FILE_NAME
+    app_config = load_app_config_from_yaml(resolved_config_path)
+    secrets = load_secrets_from_env(app_config)
+    paths = AppPaths.from_config(project_root, app_config)
+    validate_app_paths(paths)
+    _configure_logging(project_root, app_config)
+    return RuntimeBootstrapContext(
+        app_config=app_config,
+        secrets=secrets,
+        paths=paths,
+    )
+
+
 def _build_user_profile_ingest_service(
     paths: AppPaths,
-    provider_settings,
-    user_model_repository: JSONUserModelRepository,
+    provider_settings: Any,
+    user_model_repository: JSONUserProfileRepository,
 ) -> UserProfileIngestService:
     provider = build_llm_provider(provider_settings)
     extractor = LLMUserModelExtractor(
         provider=provider,
-        prompt_path=paths.user_model_extraction_prompt_path,
+        prompt_path=paths.user_profile_extraction_prompt_path,
     )
     return UserProfileIngestService(
         user_model_repository=user_model_repository,
         extractor=extractor,
-        merger=UserModelMerger(),
+        merger=UserProfileMerger(),
     )
 
 
-def _build_health_service(app_config, secrets) -> HealthService:
+def _build_health_service(
+    app_config: AppConfig,
+    secrets: SecretSettings,
+) -> HealthService:
     vector_search_dependencies = build_vector_search_dependencies(app_config, secrets)
     vector_health_service = (
         None
@@ -82,8 +112,8 @@ def _build_health_service(app_config, secrets) -> HealthService:
 
 
 def _build_memory_search_service(
-    app_config,
-    secrets,
+    app_config: AppConfig,
+    secrets: SecretSettings,
 ) -> MemorySearchService:
     vector_search_dependencies = build_vector_search_dependencies(app_config, secrets)
     vector_search_service = (
@@ -100,8 +130,8 @@ def _build_memory_search_service(
 
 
 def _build_session_ingest_service(
-    app_config,
-    secrets,
+    app_config: AppConfig,
+    secrets: SecretSettings,
     user_profile_ingest_service: UserProfileIngestService,
 ) -> SessionIngestService:
     return SessionIngestService(
@@ -113,41 +143,45 @@ def _build_session_ingest_service(
     )
 
 
-def build_app_container(
-    project_root: Path, config_path: Path | None = None
-) -> AppContainer:
-    resolved_config_path = config_path or project_root / DEFAULT_CONFIG_FILE_NAME
-    app_config = load_app_config_from_yaml(resolved_config_path)
-    secrets = load_secrets_from_env(app_config)
-    paths = AppPaths.from_config(project_root, app_config)
-    validate_app_paths(paths)
-    _configure_logging(project_root, app_config)
-
-    provider_settings = build_provider_settings(app_config.provider, secrets)
-    user_model_repository = JSONUserModelRepository(paths.storage.user_model_path)
-    user_model_renderer = UserModelRenderer()
-    user_profile_ingest_service = _build_user_profile_ingest_service(
-        paths,
-        provider_settings,
-        user_model_repository,
+def _build_runtime(context: RuntimeBootstrapContext) -> SeahorseRuntime:
+    provider_settings = build_provider_settings(
+        context.app_config.provider,
+        context.secrets,
     )
-    recall_service = RecallService(user_model_repository=user_model_repository)
-    health_service = _build_health_service(app_config, secrets)
+    user_profile_repository = JSONUserProfileRepository(
+        context.paths.storage.user_model_path
+    )
+    user_profile_ingest_service = _build_user_profile_ingest_service(
+        context.paths,
+        provider_settings,
+        user_profile_repository,
+    )
+    user_profile_service = UserProfileService(
+        user_profile_repository=user_profile_repository
+    )
+    health_service = _build_health_service(context.app_config, context.secrets)
     memory_search_service = _build_memory_search_service(
-        app_config,
-        secrets,
+        context.app_config,
+        context.secrets,
     )
     session_ingest_service = _build_session_ingest_service(
-        app_config,
-        secrets,
+        context.app_config,
+        context.secrets,
         user_profile_ingest_service,
     )
 
-    return AppContainer(
+    return SeahorseRuntime(
         health_service=health_service,
-        recall_service=recall_service,
+        user_profile_service=user_profile_service,
         memory_search_service=memory_search_service,
         session_ingest_service=session_ingest_service,
-        user_model_renderer=user_model_renderer,
-        enabled_mcp_tools=frozenset(app_config.mcp.enabled_tools),
+        user_profile_renderer=UserProfileRenderer(),
+        enabled_mcp_tools=frozenset(context.app_config.mcp.enabled_tools),
     )
+
+
+def build_runtime(
+    project_root: Path,
+    config_path: Path | None = None,
+) -> SeahorseRuntime:
+    return _build_runtime(_load_bootstrap_context(project_root, config_path))
