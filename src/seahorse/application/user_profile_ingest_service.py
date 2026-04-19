@@ -39,8 +39,9 @@ class UserProfileIngestService:
             user_profile_updated=merged.changed,
         )
 
+    @staticmethod
     def _build_extraction_conversation(
-        self, conversation: ConversationInput
+            conversation: ConversationInput
     ) -> ConversationInput | None:
         if conversation.content is not None:
             return conversation
