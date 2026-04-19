@@ -32,7 +32,7 @@ from seahorse.infrastructure.pipelines.factory import (
 )
 from seahorse.infrastructure.providers.config import build_provider_settings
 from seahorse.infrastructure.providers.factory import build_llm_provider
-from seahorse.infrastructure.repositories.user_model_json import (
+from seahorse.infrastructure.repositories.user_profile_json import (
     JSONUserProfileRepository,
 )
 
@@ -141,7 +141,7 @@ def _build_runtime(context: RuntimeBootstrapContext) -> SeahorseRuntime:
         context.secrets,
     )
     user_profile_repository = JSONUserProfileRepository(
-        context.paths.storage.user_model_path
+        context.paths.storage.user_profile_path
     )
     user_profile_ingest_service = _build_user_profile_ingest_service(
         context.paths,

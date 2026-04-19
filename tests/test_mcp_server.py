@@ -23,7 +23,7 @@ from seahorse.tools.tool_names import (
 )
 
 
-class FakeUserModelRepository:
+class FakeUserProfileRepository:
     def __init__(self, model: UserProfile | None = None) -> None:
         self.model = model
 
@@ -35,7 +35,7 @@ class FakeUserModelRepository:
 
 
 class FakeExtractor:
-    def extract(self, conversation, current_user_model) -> UserProfilePatch:
+    def extract(self, conversation, current_user_profile) -> UserProfilePatch:
         return UserProfilePatch(
             summary="Prefers structured answers.",
             preferences_to_add=["Structured answers"],
@@ -53,10 +53,10 @@ class FakeVectorSearchService:
 
 
 def test_create_mcp_server_registers_expected_tools() -> None:
-    user_model_repository = FakeUserModelRepository()
+    user_profile_repository = FakeUserProfileRepository()
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
-            user_profile_repository=FakeUserModelRepository(),
+            user_profile_repository=FakeUserProfileRepository(),
             extractor=FakeExtractor(),
             merger=UserProfileMerger(),
         ),
@@ -64,7 +64,7 @@ def test_create_mcp_server_registers_expected_tools() -> None:
     )
     runtime = SeahorseRuntime(
         health_service=HealthService(),
-        user_profile_repository=user_model_repository,
+        user_profile_repository=user_profile_repository,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),
@@ -97,10 +97,10 @@ def test_create_mcp_server_registers_expected_tools() -> None:
 
 
 def test_create_mcp_server_registers_only_enabled_tools() -> None:
-    user_model_repository = FakeUserModelRepository()
+    user_profile_repository = FakeUserProfileRepository()
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
-            user_profile_repository=FakeUserModelRepository(),
+            user_profile_repository=FakeUserProfileRepository(),
             extractor=FakeExtractor(),
             merger=UserProfileMerger(),
         ),
@@ -108,7 +108,7 @@ def test_create_mcp_server_registers_only_enabled_tools() -> None:
     )
     runtime = SeahorseRuntime(
         health_service=HealthService(),
-        user_profile_repository=user_model_repository,
+        user_profile_repository=user_profile_repository,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),

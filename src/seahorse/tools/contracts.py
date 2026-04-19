@@ -52,7 +52,7 @@ class SearchMemorySuccess(TypedDict):
 
 class IngestTurnSuccess(TypedDict):
     success: Literal[True]
-    user_model_updated: bool
+    user_profile_updated: bool
 
 
 class ToolInputMessage(TypedDict):

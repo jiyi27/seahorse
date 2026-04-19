@@ -213,7 +213,7 @@ def test_app_paths_resolve_expected_locations(tmp_path: Path) -> None:
     paths = AppPaths.from_config(tmp_path, config)
 
     assert paths.storage.data_dir == tmp_path / "var" / "memory"
-    assert paths.storage.user_model_path == tmp_path / "var" / "memory" / USER_PROFILE_FILE_NAME
+    assert paths.storage.user_profile_path == tmp_path / "var" / "memory" / USER_PROFILE_FILE_NAME
     assert paths.prompt_dir == tmp_path / "src" / "seahorse" / "prompts"
     assert (
             paths.user_profile_extraction_prompt_path

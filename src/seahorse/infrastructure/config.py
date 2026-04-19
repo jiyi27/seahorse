@@ -32,8 +32,8 @@ DEFAULT_EMBEDDING_PROVIDER = OPENAI_COMPATIBLE_EMBEDDING_PROVIDER
 DEFAULT_EMBEDDING_TIMEOUT_SECONDS = 30.0
 DEFAULT_QDRANT_COLLECTION_NAME = "seahorse_memory"
 SUPPORTED_LOG_LEVELS = frozenset({"debug", "info", "warning", "error"})
-USER_PROFILE_FILE_NAME = "user_model.json"
-USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME = "user_model_extraction.md"
+USER_PROFILE_FILE_NAME = "user_profile.json"
+USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME = "user_profile_extraction.md"
 DEFAULT_ENABLED_MCP_TOOLS = tuple(sorted(ALL_TOOL_NAMES))
 
 
@@ -283,14 +283,14 @@ class SecretSettings:
 @dataclass(frozen=True)
 class StoragePaths:
     data_dir: Path
-    user_model_path: Path
+    user_profile_path: Path
 
     @classmethod
     def from_config(cls, project_root: Path, storage_config: StorageConfig) -> "StoragePaths":
         data_dir = _resolve_project_path(project_root, storage_config.data_dir)
         return cls(
             data_dir=data_dir,
-            user_model_path=data_dir / USER_PROFILE_FILE_NAME,
+            user_profile_path=data_dir / USER_PROFILE_FILE_NAME,
         )
 
 

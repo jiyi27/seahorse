@@ -40,7 +40,7 @@ class UserProfileMerger:
             self._CONSTRAINT_PREFIX,
         )
 
-        user_model = UserProfile(
+        user_profile = UserProfile(
             summary=summary,
             facts=facts,
             preferences=preferences,
@@ -48,11 +48,11 @@ class UserProfileMerger:
         )
         changed = current is None and bool(summary or facts or preferences or constraints)
         if current is not None:
-            changed = current != user_model
+            changed = current != user_profile
 
         if not changed:
             return MergeResult(user_profile=baseline, changed=False)
-        return MergeResult(user_profile=user_model, changed=True)
+        return MergeResult(user_profile=user_profile, changed=True)
 
     def _merge_facts(
         self,

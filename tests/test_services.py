@@ -18,7 +18,7 @@ from seahorse.domain.models import (
 )
 
 
-class FakeUserModelRepository:
+class FakeUserProfileRepository:
     def __init__(self, model: UserProfile | None = None) -> None:
         self.model = model
         self.saved: list[UserProfile] = []
@@ -40,7 +40,7 @@ class FakeExtractor:
     def extract(
         self,
         conversation: ConversationInput,
-        current_user_model: UserProfile | None,
+        current_user_profile: UserProfile | None,
     ) -> UserProfilePatch:
         self.calls += 1
         self.last_conversation = conversation
@@ -81,18 +81,18 @@ class FakeUserProfileIngestService:
         )()
 
 
-def test_user_profile_repository_returns_user_model() -> None:
-    user_model_repo = FakeUserModelRepository(
+def test_user_profile_repository_returns_user_profile() -> None:
+    user_profile_repo = FakeUserProfileRepository(
         UserProfile(
             summary="Knows Python.",
             facts=[FactItem(id="fact_001", category="identity", text="Uses Python")],
         )
     )
 
-    user_model = user_model_repo.load()
+    user_profile = user_profile_repo.load()
 
-    assert user_model is not None
-    assert user_model.summary == "Knows Python."
+    assert user_profile is not None
+    assert user_profile.summary == "Knows Python."
 
 
 def test_memory_search_service_returns_vector_results() -> None:
@@ -137,8 +137,8 @@ def test_memory_search_service_returns_empty_when_vector_search_disabled() -> No
     assert results == []
 
 
-def test_user_profile_ingest_service_merges_and_persists_user_model() -> None:
-    user_model_repo = FakeUserModelRepository()
+def test_user_profile_ingest_service_merges_and_persists_user_profile() -> None:
+    user_profile_repo = FakeUserProfileRepository()
     extractor = FakeExtractor(
         UserProfilePatch(
             summary="The user prefers concise technical answers.",
@@ -147,7 +147,7 @@ def test_user_profile_ingest_service_merges_and_persists_user_model() -> None:
         )
     )
     service = UserProfileIngestService(
-        user_profile_repository=user_model_repo,
+        user_profile_repository=user_profile_repo,
         extractor=extractor,
         merger=UserProfileMerger(),
     )
@@ -165,14 +165,14 @@ def test_user_profile_ingest_service_merges_and_persists_user_model() -> None:
         "Avoid unnecessary fluff"
     ]
     assert extractor.calls == 1
-    assert len(user_model_repo.saved) == 1
+    assert len(user_profile_repo.saved) == 1
 
 
 def test_user_profile_ingest_service_reports_no_update_for_empty_initial_patch() -> None:
-    user_model_repo = FakeUserModelRepository()
+    user_profile_repo = FakeUserProfileRepository()
     extractor = FakeExtractor(UserProfilePatch())
     service = UserProfileIngestService(
-        user_profile_repository=user_model_repo,
+        user_profile_repository=user_profile_repo,
         extractor=extractor,
         merger=UserProfileMerger(),
     )
@@ -185,16 +185,16 @@ def test_user_profile_ingest_service_reports_no_update_for_empty_initial_patch()
     )
 
     assert result.user_profile_updated is False
-    assert len(user_model_repo.saved) == 0
+    assert len(user_profile_repo.saved) == 0
 
 
 def test_user_profile_ingest_service_ignores_non_user_messages() -> None:
-    user_model_repo = FakeUserModelRepository()
+    user_profile_repo = FakeUserProfileRepository()
     extractor = FakeExtractor(
         UserProfilePatch(preferences_to_add=["Concise answers"])
     )
     service = UserProfileIngestService(
-        user_profile_repository=user_model_repo,
+        user_profile_repository=user_profile_repo,
         extractor=extractor,
         merger=UserProfileMerger(),
     )
@@ -218,10 +218,10 @@ def test_user_profile_ingest_service_ignores_non_user_messages() -> None:
 
 
 def test_user_profile_ingest_service_skips_extractor_without_user_messages() -> None:
-    user_model_repo = FakeUserModelRepository()
+    user_profile_repo = FakeUserProfileRepository()
     extractor = FakeExtractor(UserProfilePatch(preferences_to_add=["Concise answers"]))
     service = UserProfileIngestService(
-        user_profile_repository=user_model_repo,
+        user_profile_repository=user_profile_repo,
         extractor=extractor,
         merger=UserProfileMerger(),
     )
@@ -235,7 +235,7 @@ def test_user_profile_ingest_service_skips_extractor_without_user_messages() -> 
 
     assert result.user_profile_updated is False
     assert extractor.calls == 0
-    assert len(user_model_repo.saved) == 0
+    assert len(user_profile_repo.saved) == 0
 
 
 def test_session_ingest_service_coordinates_user_profile_and_vector_pipeline() -> None:

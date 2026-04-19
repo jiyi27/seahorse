@@ -27,7 +27,7 @@ from seahorse.tools.tool_hints import (
 )
 
 
-class FakeUserModelRepository:
+class FakeUserProfileRepository:
     def __init__(self, model: UserProfile | None = None) -> None:
         self.model = model
 
@@ -39,7 +39,7 @@ class FakeUserModelRepository:
 
 
 class FakeExtractor:
-    def extract(self, conversation, current_user_model) -> UserProfilePatch:
+    def extract(self, conversation, current_user_profile) -> UserProfilePatch:
         return UserProfilePatch(
             summary="Prefers direct answers.",
             preferences_to_add=["Direct answers"],
@@ -59,9 +59,9 @@ class FakeVectorSearchService:
         return self._results
 
 
-class FailingUserModelRepository:
+class FailingUserProfileRepository:
     def load(self) -> UserProfile | None:
-        raise RuntimeError("User model storage unavailable")
+        raise RuntimeError("User profile storage unavailable")
 
     def save(self, model: UserProfile) -> None:
         self.model = model
@@ -70,7 +70,7 @@ class FailingUserModelRepository:
 def build_session_ingest_service() -> SessionIngestService:
         return SessionIngestService(
             UserProfileIngestService(
-                user_profile_repository=FakeUserModelRepository(),
+                user_profile_repository=FakeUserProfileRepository(),
                 extractor=FakeExtractor(),
                 merger=UserProfileMerger(),
             ),
@@ -78,7 +78,7 @@ def build_session_ingest_service() -> SessionIngestService:
         )
 
 
-def build_user_model() -> UserProfile:
+def build_user_profile() -> UserProfile:
     return UserProfile(
         summary="Prefers direct answers.",
         facts=[
@@ -94,7 +94,7 @@ def build_user_model() -> UserProfile:
 
 
 def test_get_user_profile_returns_structured_profile() -> None:
-    repository = FakeUserModelRepository(build_user_model())
+    repository = FakeUserProfileRepository(build_user_profile())
 
     payload = get_user_profile(repository)
 
@@ -126,8 +126,8 @@ def test_get_user_profile_returns_structured_profile() -> None:
     }
 
 
-def test_get_user_profile_returns_null_when_user_model_missing() -> None:
-    repository = FakeUserModelRepository()
+def test_get_user_profile_returns_null_when_user_profile_missing() -> None:
+    repository = FakeUserProfileRepository()
 
     payload = get_user_profile(repository)
 
@@ -187,18 +187,18 @@ def test_ingest_turn_normalizes_messages_and_returns_result() -> None:
     )
 
     assert payload["success"] is True
-    assert payload["user_model_updated"] is True
+    assert payload["user_profile_updated"] is True
 
 
 def test_get_user_profile_returns_structured_internal_error_on_runtime_failure() -> None:
-    repository = FailingUserModelRepository()
+    repository = FailingUserProfileRepository()
 
     payload = get_user_profile(repository)
 
     assert payload == {
         "success": False,
         "error_type": "internal_error",
-        "message": "User model storage unavailable",
+        "message": "User profile storage unavailable",
         "hint": USER_PROFILE_UNAVAILABLE_HINT,
     }
 

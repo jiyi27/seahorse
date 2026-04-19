@@ -33,7 +33,7 @@ from seahorse.tools.tool_hints import USER_PROFILE_SUCCESS_HINT, search_memory_h
 from seahorse.tools.tool_names import GET_USER_PROFILE_TOOL, INGEST_TURN_TOOL, SEARCH_MEMORY_TOOL
 
 
-class FakeUserModelRepository:
+class FakeUserProfileRepository:
     def __init__(self, model: UserProfile | None = None) -> None:
         self.model = model
 
@@ -45,7 +45,7 @@ class FakeUserModelRepository:
 
 
 class FakeExtractor:
-    def extract(self, conversation, current_user_model) -> UserProfilePatch:
+    def extract(self, conversation, current_user_profile) -> UserProfilePatch:
         return UserProfilePatch(
             summary="Prefers concise answers.",
             preferences_to_add=["Concise answers"],
@@ -69,11 +69,11 @@ class FakeVectorSearchService:
 
 
 class FailingExtractor:
-    def extract(self, conversation, current_user_model) -> UserProfilePatch:
+    def extract(self, conversation, current_user_profile) -> UserProfilePatch:
         raise RuntimeError("Extractor exploded")
 
 
-def build_user_model() -> UserProfile:
+def build_user_profile() -> UserProfile:
     return UserProfile(
         summary="Prefers concise answers.",
         facts=[
@@ -88,10 +88,10 @@ def build_user_model() -> UserProfile:
 
 
 def build_test_client() -> TestClient:
-    user_model_repository = FakeUserModelRepository(build_user_model())
+    user_profile_repository = FakeUserProfileRepository(build_user_profile())
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
-            user_profile_repository=FakeUserModelRepository(),
+            user_profile_repository=FakeUserProfileRepository(),
             extractor=FakeExtractor(),
             merger=UserProfileMerger(),
         ),
@@ -99,7 +99,7 @@ def build_test_client() -> TestClient:
     )
     runtime = SeahorseRuntime(
         health_service=HealthService(),
-        user_profile_repository=user_model_repository,
+        user_profile_repository=user_profile_repository,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),
@@ -170,7 +170,7 @@ def test_memory_search_endpoint_returns_matches() -> None:
     }
 
 
-def test_memory_ingest_endpoint_updates_user_model() -> None:
+def test_memory_ingest_endpoint_updates_user_profile() -> None:
     client = build_test_client()
 
     response = client.post(
@@ -184,8 +184,8 @@ def test_memory_ingest_endpoint_updates_user_model() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["success"] is True
-    assert payload["user_model_updated"] is True
-    assert "user_model" not in payload
+    assert payload["user_profile_updated"] is True
+    assert "user_profile" not in payload
 
 
 def test_http_middleware_logs_request_and_response_bodies(tmp_path: Path) -> None:
@@ -227,15 +227,15 @@ def test_http_middleware_logs_request_and_response_bodies(tmp_path: Path) -> Non
     assert response_record["data"]["status_code"] == 200
     assert response_record["data"]["body"] == {
         "success": True,
-        "user_model_updated": True,
+        "user_profile_updated": True,
     }
 
 
 def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
-    user_model_repository = FakeUserModelRepository()
+    user_profile_repository = FakeUserProfileRepository()
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
-            user_profile_repository=FakeUserModelRepository(),
+            user_profile_repository=FakeUserProfileRepository(),
             extractor=FailingExtractor(),
             merger=UserProfileMerger(),
         ),
@@ -243,7 +243,7 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
     )
     runtime = SeahorseRuntime(
         health_service=HealthService(),
-        user_profile_repository=user_model_repository,
+        user_profile_repository=user_profile_repository,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),
@@ -345,11 +345,11 @@ def test_memory_ingest_endpoint_rejects_content_and_messages_together() -> None:
     }
 
 
-def test_user_profile_endpoint_returns_null_when_user_model_missing() -> None:
-    user_model_repository = FakeUserModelRepository()
+def test_user_profile_endpoint_returns_null_when_user_profile_missing() -> None:
+    user_profile_repository = FakeUserProfileRepository()
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
-            user_profile_repository=FakeUserModelRepository(),
+            user_profile_repository=FakeUserProfileRepository(),
             extractor=FakeExtractor(),
             merger=UserProfileMerger(),
         ),
@@ -357,7 +357,7 @@ def test_user_profile_endpoint_returns_null_when_user_model_missing() -> None:
     )
     runtime = SeahorseRuntime(
         health_service=HealthService(),
-        user_profile_repository=user_model_repository,
+        user_profile_repository=user_profile_repository,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),

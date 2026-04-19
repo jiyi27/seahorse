@@ -17,11 +17,11 @@ from seahorse.tools.tool_hints import (
 
 def get_user_profile(user_profile_repository: UserProfileRepository) -> GetUserProfileResult:
     try:
-        user_model = user_profile_repository.load()
+        user_profile = user_profile_repository.load()
     except RuntimeError as exc:
         return internal_error(str(exc), USER_PROFILE_UNAVAILABLE_HINT)
 
-    if user_model is None:
+    if user_profile is None:
         payload: GetUserProfileSuccess = {
             "success": True,
             "profile": None,
@@ -31,7 +31,7 @@ def get_user_profile(user_profile_repository: UserProfileRepository) -> GetUserP
 
     payload: GetUserProfileSuccess = {
         "success": True,
-        "profile": _serialize_user_profile(user_model),
+        "profile": _serialize_user_profile(user_profile),
         "hint": USER_PROFILE_SUCCESS_HINT,
     }
     return payload
