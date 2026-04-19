@@ -110,7 +110,8 @@ class UserProfileMerger:
                 max_index = index
         return max_index + 1
 
-    def _parse_item_index(self, item_id: str, prefix: str) -> int:
+    @staticmethod
+    def _parse_item_index(item_id: str, prefix: str) -> int:
         expected_prefix = f"{prefix}_"
         if not item_id.startswith(expected_prefix):
             return 0
