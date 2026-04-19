@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import Any
+
 from seahorse.infrastructure.embeddings.base import EmbeddingSettings
 from seahorse.infrastructure.config import AppConfig, SecretSettings
 from seahorse.infrastructure.embeddings.factory import build_embedding_model
@@ -15,38 +18,16 @@ from seahorse.infrastructure.vectorstore.qdrant_store import (
 )
 
 
-def build_conversation_vector_pipeline(
+@dataclass(frozen=True)
+class VectorMemoryRuntime:
+    embedding_model: Any
+    vector_store: Any
+
+
+def build_vector_memory_runtime(
     app_config: AppConfig,
     secrets: SecretSettings,
-):
-    if not app_config.vector_memory.enabled:
-        return NoopConversationVectorPipeline()
-
-    embedding_model = build_embedding_model(
-        EmbeddingSettings(
-            provider=app_config.vector_memory.embedding.provider,
-            model=app_config.vector_memory.embedding.model or "",
-            base_url=app_config.vector_memory.embedding.base_url or "",
-            api_key=secrets.embedding_api_key,
-            timeout_seconds=app_config.vector_memory.embedding.timeout_seconds,
-        )
-    )
-    vector_store = build_qdrant_vector_store(
-        QdrantSettings(
-            url=app_config.vector_memory.store.url or "",
-            collection_name=app_config.vector_memory.store.collection_name,
-        )
-    )
-    return QdrantConversationVectorPipeline(
-        embedding_model=embedding_model,
-        vector_store=vector_store,
-    )
-
-
-def build_vector_search_dependencies(
-    app_config: AppConfig,
-    secrets: SecretSettings,
-):
+) -> VectorMemoryRuntime | None:
     if not app_config.vector_memory.enabled:
         return None
 
@@ -65,4 +46,19 @@ def build_vector_search_dependencies(
             collection_name=app_config.vector_memory.store.collection_name,
         )
     )
-    return embedding_model, vector_store
+    return VectorMemoryRuntime(
+        embedding_model=embedding_model,
+        vector_store=vector_store,
+    )
+
+
+def build_conversation_vector_pipeline(
+    vector_memory_runtime: VectorMemoryRuntime | None,
+):
+    if vector_memory_runtime is None:
+        return NoopConversationVectorPipeline()
+
+    return QdrantConversationVectorPipeline(
+        embedding_model=vector_memory_runtime.embedding_model,
+        vector_store=vector_memory_runtime.vector_store,
+    )

@@ -28,7 +28,8 @@ from seahorse.infrastructure.extractors.llm_user_profile_extractor import (
 )
 from seahorse.infrastructure.pipelines.factory import (
     build_conversation_vector_pipeline,
-    build_vector_search_dependencies,
+    build_vector_memory_runtime,
+    VectorMemoryRuntime,
 )
 from seahorse.infrastructure.providers.config import build_provider_settings
 from seahorse.infrastructure.providers.factory import build_llm_provider
@@ -96,16 +97,14 @@ def _build_user_profile_ingest_service(
 
 
 def _build_health_service(
-    app_config: AppConfig,
-    secrets: SecretSettings,
+    vector_memory_runtime: VectorMemoryRuntime | None,
 ) -> HealthService:
-    vector_search_dependencies = build_vector_search_dependencies(app_config, secrets)
     vector_health_service = (
         None
-        if vector_search_dependencies is None
+        if vector_memory_runtime is None
         else VectorHealthService(
-            vector_search_dependencies[0],
-            vector_search_dependencies[1],
+            vector_memory_runtime.embedding_model,
+            vector_memory_runtime.vector_store,
         )
     )
     return HealthService(vector_health_service=vector_health_service)
@@ -113,15 +112,14 @@ def _build_health_service(
 
 def _build_memory_search_service(
     app_config: AppConfig,
-    secrets: SecretSettings,
+    vector_memory_runtime: VectorMemoryRuntime | None,
 ) -> MemorySearchService:
-    vector_search_dependencies = build_vector_search_dependencies(app_config, secrets)
     vector_search_service = (
         None
-        if vector_search_dependencies is None
+        if vector_memory_runtime is None
         else VectorSearchService(
-            vector_search_dependencies[0],
-            vector_search_dependencies[1],
+            vector_memory_runtime.embedding_model,
+            vector_memory_runtime.vector_store,
             max_chunks=app_config.vector_memory.retrieval.max_chunks,
             max_blocks=app_config.vector_memory.retrieval.max_blocks,
         )
@@ -130,16 +128,12 @@ def _build_memory_search_service(
 
 
 def _build_session_ingest_service(
-    app_config: AppConfig,
-    secrets: SecretSettings,
     user_profile_ingest_service: UserProfileIngestService,
+    vector_memory_runtime: VectorMemoryRuntime | None,
 ) -> SessionIngestService:
     return SessionIngestService(
         user_profile_ingest_service=user_profile_ingest_service,
-        conversation_vector_pipeline=build_conversation_vector_pipeline(
-            app_config,
-            secrets,
-        ),
+        conversation_vector_pipeline=build_conversation_vector_pipeline(vector_memory_runtime),
     )
 
 
@@ -156,18 +150,21 @@ def _build_runtime(context: RuntimeBootstrapContext) -> SeahorseRuntime:
         provider_settings,
         user_profile_repository,
     )
+    vector_memory_runtime = build_vector_memory_runtime(
+        context.app_config,
+        context.secrets,
+    )
     user_profile_service = UserProfileService(
         user_profile_repository=user_profile_repository
     )
-    health_service = _build_health_service(context.app_config, context.secrets)
+    health_service = _build_health_service(vector_memory_runtime)
     memory_search_service = _build_memory_search_service(
         context.app_config,
-        context.secrets,
+        vector_memory_runtime,
     )
     session_ingest_service = _build_session_ingest_service(
-        context.app_config,
-        context.secrets,
         user_profile_ingest_service,
+        vector_memory_runtime,
     )
 
     return SeahorseRuntime(
