@@ -280,7 +280,7 @@ def test_build_runtime_wires_services(
 
     runtime = build_runtime(tmp_path)
 
-    assert runtime.user_profile_service is not None
+    assert runtime.user_profile_repository is not None
     assert runtime.memory_search_service is not None
     assert runtime.session_ingest_service is not None
     assert runtime.enabled_mcp_tools == frozenset(DEFAULT_ENABLED_MCP_TOOLS)

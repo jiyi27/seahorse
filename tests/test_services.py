@@ -3,7 +3,6 @@ from __future__ import annotations
 import pytest
 
 from seahorse.application.memory_search_service import MemorySearchService
-from seahorse.application.user_profile_service import UserProfileService
 from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_profile_merger import UserProfileMerger
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
@@ -77,12 +76,12 @@ class FakeUserProfileIngestService:
             "Result",
             (),
             {
-                "user_model_updated": self.result_updated,
+                "user_profile_updated": self.result_updated,
             },
         )()
 
 
-def test_recall_service_returns_user_model() -> None:
+def test_user_profile_repository_returns_user_model() -> None:
     user_model_repo = FakeUserModelRepository(
         UserProfile(
             summary="Knows Python.",
@@ -90,8 +89,7 @@ def test_recall_service_returns_user_model() -> None:
         )
     )
 
-    service = UserProfileService(user_model_repo)
-    user_model = service.get_user_model()
+    user_model = user_model_repo.load()
 
     assert user_model is not None
     assert user_model.summary == "Knows Python."

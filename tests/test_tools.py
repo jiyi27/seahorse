@@ -3,7 +3,6 @@ from __future__ import annotations
 import pytest
 
 from seahorse.application.memory_search_service import MemorySearchService
-from seahorse.application.user_profile_service import UserProfileService
 from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_profile_merger import UserProfileMerger
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
@@ -95,9 +94,9 @@ def build_user_model() -> UserProfile:
 
 
 def test_get_user_profile_returns_structured_profile() -> None:
-    service = UserProfileService(FakeUserModelRepository(build_user_model()))
+    repository = FakeUserModelRepository(build_user_model())
 
-    payload = get_user_profile(service)
+    payload = get_user_profile(repository)
 
     assert payload == {
         "success": True,
@@ -128,9 +127,9 @@ def test_get_user_profile_returns_structured_profile() -> None:
 
 
 def test_get_user_profile_returns_null_when_user_model_missing() -> None:
-    service = UserProfileService(FakeUserModelRepository())
+    repository = FakeUserModelRepository()
 
-    payload = get_user_profile(service)
+    payload = get_user_profile(repository)
 
     assert payload == {
         "success": True,
@@ -192,9 +191,9 @@ def test_ingest_turn_normalizes_messages_and_returns_result() -> None:
 
 
 def test_get_user_profile_returns_structured_internal_error_on_runtime_failure() -> None:
-    service = UserProfileService(FailingUserModelRepository())
+    repository = FailingUserModelRepository()
 
-    payload = get_user_profile(service)
+    payload = get_user_profile(repository)
 
     assert payload == {
         "success": False,

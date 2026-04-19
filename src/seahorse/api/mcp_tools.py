@@ -35,7 +35,7 @@ def register_mcp_tools(server: FastMCP, runtime: SeahorseRuntime) -> None:
         )
         @wrap_mcp_tool(GET_USER_PROFILE_TOOL)
         def get_user_profile_tool() -> GetUserProfileResult:
-            return get_user_profile(runtime.user_profile_service)
+            return get_user_profile(runtime.user_profile_repository)
 
     if SEARCH_MEMORY_TOOL in runtime.enabled_mcp_tools:
         @server.tool(

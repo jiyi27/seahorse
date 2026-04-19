@@ -50,7 +50,7 @@ def register_http_routes(app: FastAPI, runtime: SeahorseRuntime) -> None:
 
     @app.get(USER_PROFILE_PATH)
     def get_user_profile_endpoint() -> JSONResponse:
-        return _http_tool_response(get_user_profile(runtime.user_profile_service))
+        return _http_tool_response(get_user_profile(runtime.user_profile_repository))
 
     @app.get(MEMORY_SEARCH_PATH)
     def get_memory_search(

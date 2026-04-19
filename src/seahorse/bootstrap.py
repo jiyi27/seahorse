@@ -11,7 +11,7 @@ from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
 from seahorse.application.user_profile_merger import UserProfileMerger
 from seahorse.application.user_profile_renderer import UserProfileRenderer
-from seahorse.application.user_profile_service import UserProfileService
+from seahorse.domain.repositories import UserProfileRepository
 from seahorse.retrieval.vector_health_service import VectorHealthService
 from seahorse.retrieval.vector_search_service import VectorSearchService
 from seahorse.infrastructure.config import (
@@ -41,7 +41,7 @@ from seahorse.infrastructure.repositories.user_model_json import (
 @dataclass(frozen=True)
 class SeahorseRuntime:
     health_service: HealthService
-    user_profile_service: UserProfileService
+    user_profile_repository: UserProfileRepository
     memory_search_service: MemorySearchService
     session_ingest_service: SessionIngestService
     user_profile_renderer: UserProfileRenderer
@@ -154,9 +154,6 @@ def _build_runtime(context: RuntimeBootstrapContext) -> SeahorseRuntime:
         context.app_config,
         context.secrets,
     )
-    user_profile_service = UserProfileService(
-        user_profile_repository=user_profile_repository
-    )
     health_service = _build_health_service(vector_memory_runtime)
     memory_search_service = _build_memory_search_service(
         context.app_config,
@@ -169,7 +166,7 @@ def _build_runtime(context: RuntimeBootstrapContext) -> SeahorseRuntime:
 
     return SeahorseRuntime(
         health_service=health_service,
-        user_profile_service=user_profile_service,
+        user_profile_repository=user_profile_repository,
         memory_search_service=memory_search_service,
         session_ingest_service=session_ingest_service,
         user_profile_renderer=UserProfileRenderer(),

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from seahorse.application.user_profile_service import UserProfileService
 from seahorse.domain.models import FactItem, FactPatchItem, TextItem, UserProfile, UserProfilePatch
 
 

@@ -7,7 +7,6 @@ import pytest
 from seahorse.api.mcp_server import build_default_mcp_server, create_mcp_server
 from seahorse.application.health_service import HealthService
 from seahorse.application.memory_search_service import MemorySearchService
-from seahorse.application.user_profile_service import UserProfileService
 from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_profile_merger import UserProfileMerger
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
@@ -56,7 +55,6 @@ class FakeVectorSearchService:
 
 def test_create_mcp_server_registers_expected_tools() -> None:
     user_model_repository = FakeUserModelRepository()
-    recall_service = UserProfileService(user_model_repository)
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
             user_model_repository=FakeUserModelRepository(),
@@ -67,7 +65,7 @@ def test_create_mcp_server_registers_expected_tools() -> None:
     )
     runtime = SeahorseRuntime(
         health_service=HealthService(),
-        user_profile_service=recall_service,
+        user_profile_repository=user_model_repository,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),
@@ -102,7 +100,6 @@ def test_create_mcp_server_registers_expected_tools() -> None:
 
 def test_create_mcp_server_registers_only_enabled_tools() -> None:
     user_model_repository = FakeUserModelRepository()
-    recall_service = UserProfileService(user_model_repository)
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
             user_model_repository=FakeUserModelRepository(),
@@ -113,7 +110,7 @@ def test_create_mcp_server_registers_only_enabled_tools() -> None:
     )
     runtime = SeahorseRuntime(
         health_service=HealthService(),
-        user_profile_service=recall_service,
+        user_profile_repository=user_model_repository,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),

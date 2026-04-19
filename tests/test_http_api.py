@@ -16,9 +16,8 @@ from seahorse.api.constants import (
 from seahorse.api.http_errors import register_http_exception_handlers
 from seahorse.api.http_logging import register_http_logging_middleware
 from seahorse.api.http_server import create_http_app
-from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.health_service import HealthService
-from seahorse.application.user_profile_service import UserProfileService
+from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_profile_merger import UserProfileMerger
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
@@ -91,7 +90,6 @@ def build_user_model() -> UserProfile:
 
 def build_test_client() -> TestClient:
     user_model_repository = FakeUserModelRepository(build_user_model())
-    recall_service = UserProfileService(user_model_repository)
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
             user_model_repository=FakeUserModelRepository(),
@@ -102,7 +100,7 @@ def build_test_client() -> TestClient:
     )
     runtime = SeahorseRuntime(
         health_service=HealthService(),
-        user_profile_service=recall_service,
+        user_profile_repository=user_model_repository,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),
@@ -237,7 +235,6 @@ def test_http_middleware_logs_request_and_response_bodies(tmp_path: Path) -> Non
 
 def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
     user_model_repository = FakeUserModelRepository()
-    recall_service = UserProfileService(user_model_repository)
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
             user_model_repository=FakeUserModelRepository(),
@@ -248,7 +245,7 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
     )
     runtime = SeahorseRuntime(
         health_service=HealthService(),
-        user_profile_service=recall_service,
+        user_profile_repository=user_model_repository,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),
@@ -353,7 +350,6 @@ def test_memory_ingest_endpoint_rejects_content_and_messages_together() -> None:
 
 def test_user_profile_endpoint_returns_null_when_user_model_missing() -> None:
     user_model_repository = FakeUserModelRepository()
-    recall_service = UserProfileService(user_model_repository)
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
             user_model_repository=FakeUserModelRepository(),
@@ -364,7 +360,7 @@ def test_user_profile_endpoint_returns_null_when_user_model_missing() -> None:
     )
     runtime = SeahorseRuntime(
         health_service=HealthService(),
-        user_profile_service=recall_service,
+        user_profile_repository=user_model_repository,
         memory_search_service=MemorySearchService(
             vector_search_service=FakeVectorSearchService()
         ),

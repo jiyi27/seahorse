@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from seahorse.application.user_profile_service import UserProfileService
 from seahorse.domain.models import UserProfile
+from seahorse.domain.repositories import UserProfileRepository
 from seahorse.tools.contracts import (
     GetUserProfileResult,
     GetUserProfileSuccess,
@@ -15,9 +15,9 @@ from seahorse.tools.tool_hints import (
 )
 
 
-def get_user_profile(service: UserProfileService) -> GetUserProfileResult:
+def get_user_profile(user_profile_repository: UserProfileRepository) -> GetUserProfileResult:
     try:
-        user_model = service.get_user_model()
+        user_model = user_profile_repository.load()
     except RuntimeError as exc:
         return internal_error(str(exc), USER_PROFILE_UNAVAILABLE_HINT)
 
