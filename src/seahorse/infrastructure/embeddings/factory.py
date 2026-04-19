@@ -114,7 +114,7 @@ class OpenAICompatibleEmbeddingModel:
 
             indexed_embeddings.append((index, [float(value) for value in embedding]))
 
-        indexed_embeddings.sort(key=lambda item: item[0])
+        indexed_embeddings.sort(key=lambda _item: _item[0])
         embeddings = [embedding for _, embedding in indexed_embeddings]
         if len(embeddings) != expected_count:
             raise EmbeddingError(
@@ -126,7 +126,8 @@ class OpenAICompatibleEmbeddingModel:
             )
         return embeddings
 
-    def _is_number_list(self, value: Any) -> bool:
+    @staticmethod
+    def _is_number_list(value: Any) -> bool:
         return (
             isinstance(value, Sequence)
             and not isinstance(value, str | bytes)
@@ -142,10 +143,15 @@ def build_embedding_model(settings: EmbeddingSettings) -> EmbeddingModel:
     if settings.provider != OPENAI_COMPATIBLE_EMBEDDING_PROVIDER:
         raise RuntimeError(f"Unsupported embedding provider: {settings.provider}")
 
+    # Double-Checked Locking
+    # Fast path: no lock needed once the cache is warm.
     cached = _EMBEDDING_CACHE.get(settings)
     if cached is not None:
         return cached
 
+    # Slow path: two threads may both miss the fast path and race here.
+    # The second check inside the lock ensures only one of them creates
+    # the instance; the other will find it already written.
     with _LOCK:
         cached = _EMBEDDING_CACHE.get(settings)
         if cached is not None:
