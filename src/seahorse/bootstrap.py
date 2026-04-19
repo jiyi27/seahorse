@@ -10,7 +10,6 @@ from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
 from seahorse.application.user_profile_merger import UserProfileMerger
-from seahorse.application.user_profile_renderer import UserProfileRenderer
 from seahorse.domain.repositories import UserProfileRepository
 from seahorse.retrieval.vector_health_service import VectorHealthService
 from seahorse.retrieval.vector_search_service import VectorSearchService
@@ -24,7 +23,7 @@ from seahorse.infrastructure.config import (
     validate_app_paths,
 )
 from seahorse.infrastructure.extractors.llm_user_profile_extractor import (
-    LLMUserModelExtractor,
+    LLMUserProfileExtractor,
 )
 from seahorse.infrastructure.pipelines.factory import (
     build_conversation_vector_pipeline,
@@ -44,7 +43,6 @@ class SeahorseRuntime:
     user_profile_repository: UserProfileRepository
     memory_search_service: MemorySearchService
     session_ingest_service: SessionIngestService
-    user_profile_renderer: UserProfileRenderer
     enabled_mcp_tools: frozenset[str]
 
 
@@ -82,15 +80,15 @@ def _load_bootstrap_context(
 def _build_user_profile_ingest_service(
     paths: AppPaths,
     provider_settings: Any,
-    user_model_repository: JSONUserProfileRepository,
+    user_profile_repository: JSONUserProfileRepository,
 ) -> UserProfileIngestService:
     provider = build_llm_provider(provider_settings)
-    extractor = LLMUserModelExtractor(
+    extractor = LLMUserProfileExtractor(
         provider=provider,
         prompt_path=paths.user_profile_extraction_prompt_path,
     )
     return UserProfileIngestService(
-        user_model_repository=user_model_repository,
+        user_profile_repository=user_profile_repository,
         extractor=extractor,
         merger=UserProfileMerger(),
     )
@@ -169,7 +167,6 @@ def _build_runtime(context: RuntimeBootstrapContext) -> SeahorseRuntime:
         user_profile_repository=user_profile_repository,
         memory_search_service=memory_search_service,
         session_ingest_service=session_ingest_service,
-        user_profile_renderer=UserProfileRenderer(),
         enabled_mcp_tools=frozenset(context.app_config.mcp.enabled_tools),
     )
 

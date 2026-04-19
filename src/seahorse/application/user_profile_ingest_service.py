@@ -9,33 +9,33 @@ from seahorse.domain.services import UserProfileExtractor
 class UserProfileIngestService:
     def __init__(
         self,
-        user_model_repository: UserProfileRepository,
+        user_profile_repository: UserProfileRepository,
         extractor: UserProfileExtractor,
         merger: UserProfileMerger,
     ) -> None:
-        self._user_model_repository = user_model_repository
+        self._user_profile_repository = user_profile_repository
         self._extractor = extractor
         self._merger = merger
 
     def ingest(self, conversation: ConversationInput) -> IngestResult:
-        current_user_model = self._user_model_repository.load()
+        current_user_profile = self._user_profile_repository.load()
         extraction_conversation = self._build_extraction_conversation(conversation)
         if extraction_conversation is None:
-            merged = self._merger.merge(current_user_model, UserProfilePatch())
+            merged = self._merger.merge(current_user_profile, UserProfilePatch())
             return IngestResult(
                 user_profile=merged.user_profile,
                 user_profile_updated=False,
             )
 
-        patch = self._extractor.extract(extraction_conversation, current_user_model)
-        merged = self._merger.merge(current_user_model, patch)
-        merged_user_model = merged.user_profile
+        patch = self._extractor.extract(extraction_conversation, current_user_profile)
+        merged = self._merger.merge(current_user_profile, patch)
+        merged_user_profile = merged.user_profile
 
         if merged.changed:
-            self._user_model_repository.save(merged_user_model)
+            self._user_profile_repository.save(merged_user_profile)
 
         return IngestResult(
-            user_profile=merged_user_model,
+            user_profile=merged_user_profile,
             user_profile_updated=merged.changed,
         )
 

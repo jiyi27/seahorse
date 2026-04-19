@@ -10,7 +10,6 @@ from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_profile_merger import UserProfileMerger
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
-from seahorse.application.user_profile_renderer import UserProfileRenderer
 from seahorse.bootstrap import SeahorseRuntime
 from seahorse.domain.models import UserProfile, UserProfilePatch
 from seahorse.infrastructure.config import (
@@ -57,7 +56,7 @@ def test_create_mcp_server_registers_expected_tools() -> None:
     user_model_repository = FakeUserModelRepository()
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
-            user_model_repository=FakeUserModelRepository(),
+            user_profile_repository=FakeUserModelRepository(),
             extractor=FakeExtractor(),
             merger=UserProfileMerger(),
         ),
@@ -70,7 +69,6 @@ def test_create_mcp_server_registers_expected_tools() -> None:
             vector_search_service=FakeVectorSearchService()
         ),
         session_ingest_service=session_ingest_service,
-        user_profile_renderer=UserProfileRenderer(),
         enabled_mcp_tools=frozenset(
             {
                 GET_USER_PROFILE_TOOL,
@@ -102,7 +100,7 @@ def test_create_mcp_server_registers_only_enabled_tools() -> None:
     user_model_repository = FakeUserModelRepository()
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
-            user_model_repository=FakeUserModelRepository(),
+            user_profile_repository=FakeUserModelRepository(),
             extractor=FakeExtractor(),
             merger=UserProfileMerger(),
         ),
@@ -115,7 +113,6 @@ def test_create_mcp_server_registers_only_enabled_tools() -> None:
             vector_search_service=FakeVectorSearchService()
         ),
         session_ingest_service=session_ingest_service,
-        user_profile_renderer=UserProfileRenderer(),
         enabled_mcp_tools=frozenset({SEARCH_MEMORY_TOOL}),
     )
 

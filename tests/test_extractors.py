@@ -15,7 +15,7 @@ from seahorse.domain.models import (
 )
 from seahorse.infrastructure.config import USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME
 from seahorse.infrastructure.extractors.llm_user_profile_extractor import (
-    LLMUserModelExtractor,
+    LLMUserProfileExtractor,
 )
 from seahorse.infrastructure.providers.base import LLMProvider
 from seahorse.infrastructure.providers.openrouter import OpenRouterProvider
@@ -35,7 +35,7 @@ class FakeProvider(LLMProvider):
         return self.response
 
 
-def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Path) -> None:
+def test_llm_user_profile_extractor_builds_patch_from_provider_output(tmp_path: Path) -> None:
     prompt_path = tmp_path / USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME
     prompt_path.write_text("Extract stable user information.", encoding="utf-8")
     provider = FakeProvider(
@@ -48,14 +48,14 @@ def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Pa
             '"constraints_to_add":[],"constraint_ids_to_remove":[]}'
         )
     )
-    extractor = LLMUserModelExtractor(provider=provider, prompt_path=prompt_path)
+    extractor = LLMUserProfileExtractor(provider=provider, prompt_path=prompt_path)
 
     patch = extractor.extract(
         conversation=ConversationInput(
             source="mcp",
             messages=[Message(role="user", text="Please keep answers concise. I use Python.")],
         ),
-        current_user_model=UserProfile(
+        current_user_profile=UserProfile(
             summary="Already knows some basics.",
             facts=[FactItem(id="fact_001", category="identity", text="Uses Rust")],
         ),
@@ -68,12 +68,12 @@ def test_llm_user_model_extractor_builds_patch_from_provider_output(tmp_path: Pa
     assert patch.facts_to_add[0].text == "Uses Python"
     assert patch.fact_ids_to_remove == []
     assert provider.calls == 1
-    assert "Current user model:" in provider.last_user_prompt
+    assert "Current user profile:" in provider.last_user_prompt
     assert '"category": "identity"' in provider.last_user_prompt
     assert "I use Python." in provider.last_user_prompt
 
 
-def test_llm_user_model_extractor_prompt_uses_user_messages_only(tmp_path: Path) -> None:
+def test_llm_user_profile_extractor_prompt_uses_user_messages_only(tmp_path: Path) -> None:
     prompt_path = tmp_path / USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME
     prompt_path.write_text("Extract stable user information.", encoding="utf-8")
     provider = FakeProvider(
@@ -83,7 +83,7 @@ def test_llm_user_model_extractor_prompt_uses_user_messages_only(tmp_path: Path)
             '"constraints_to_add":[],"constraint_ids_to_remove":[]}'
         )
     )
-    extractor = LLMUserModelExtractor(provider=provider, prompt_path=prompt_path)
+    extractor = LLMUserProfileExtractor(provider=provider, prompt_path=prompt_path)
 
     extractor.extract(
         conversation=ConversationInput(
@@ -94,7 +94,7 @@ def test_llm_user_model_extractor_prompt_uses_user_messages_only(tmp_path: Path)
                 Message(role="tool", text="tool output"),
             ],
         ),
-        current_user_model=None,
+        current_user_profile=None,
     )
 
     assert "Remember that I prefer concise answers." in provider.last_user_prompt
@@ -102,16 +102,16 @@ def test_llm_user_model_extractor_prompt_uses_user_messages_only(tmp_path: Path)
     assert "tool output" not in provider.last_user_prompt
 
 
-def test_llm_user_model_extractor_rejects_invalid_json(tmp_path: Path) -> None:
+def test_llm_user_profile_extractor_rejects_invalid_json(tmp_path: Path) -> None:
     prompt_path = tmp_path / USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME
     prompt_path.write_text("Extract stable user information.", encoding="utf-8")
     provider = FakeProvider("not-json")
-    extractor = LLMUserModelExtractor(provider=provider, prompt_path=prompt_path)
+    extractor = LLMUserProfileExtractor(provider=provider, prompt_path=prompt_path)
 
     with pytest.raises(RuntimeError, match="invalid JSON"):
         extractor.extract(
             conversation=ConversationInput(source="http", content="User prefers brief answers."),
-            current_user_model=None,
+            current_user_profile=None,
         )
 
 

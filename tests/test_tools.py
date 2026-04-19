@@ -68,14 +68,14 @@ class FailingUserModelRepository:
 
 
 def build_session_ingest_service() -> SessionIngestService:
-    return SessionIngestService(
-        UserProfileIngestService(
-            user_model_repository=FakeUserModelRepository(),
-            extractor=FakeExtractor(),
-            merger=UserProfileMerger(),
-        ),
-        FakeConversationVectorPipeline(),
-    )
+        return SessionIngestService(
+            UserProfileIngestService(
+                user_profile_repository=FakeUserModelRepository(),
+                extractor=FakeExtractor(),
+                merger=UserProfileMerger(),
+            ),
+            FakeConversationVectorPipeline(),
+        )
 
 
 def build_user_model() -> UserProfile:

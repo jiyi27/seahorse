@@ -21,7 +21,6 @@ from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_profile_merger import UserProfileMerger
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
-from seahorse.application.user_profile_renderer import UserProfileRenderer
 from seahorse.bootstrap import SeahorseRuntime
 from seahorse.domain.models import (
     FactItem,
@@ -92,7 +91,7 @@ def build_test_client() -> TestClient:
     user_model_repository = FakeUserModelRepository(build_user_model())
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
-            user_model_repository=FakeUserModelRepository(),
+            user_profile_repository=FakeUserModelRepository(),
             extractor=FakeExtractor(),
             merger=UserProfileMerger(),
         ),
@@ -105,7 +104,6 @@ def build_test_client() -> TestClient:
             vector_search_service=FakeVectorSearchService()
         ),
         session_ingest_service=session_ingest_service,
-        user_profile_renderer=UserProfileRenderer(),
         enabled_mcp_tools=frozenset(
             {
                 GET_USER_PROFILE_TOOL,
@@ -237,7 +235,7 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
     user_model_repository = FakeUserModelRepository()
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
-            user_model_repository=FakeUserModelRepository(),
+            user_profile_repository=FakeUserModelRepository(),
             extractor=FailingExtractor(),
             merger=UserProfileMerger(),
         ),
@@ -250,7 +248,6 @@ def test_memory_ingest_endpoint_returns_structured_runtime_error() -> None:
             vector_search_service=FakeVectorSearchService()
         ),
         session_ingest_service=session_ingest_service,
-        user_profile_renderer=UserProfileRenderer(),
         enabled_mcp_tools=frozenset(
             {
                 GET_USER_PROFILE_TOOL,
@@ -352,7 +349,7 @@ def test_user_profile_endpoint_returns_null_when_user_model_missing() -> None:
     user_model_repository = FakeUserModelRepository()
     session_ingest_service = SessionIngestService(
         UserProfileIngestService(
-            user_model_repository=FakeUserModelRepository(),
+            user_profile_repository=FakeUserModelRepository(),
             extractor=FakeExtractor(),
             merger=UserProfileMerger(),
         ),
@@ -365,7 +362,6 @@ def test_user_profile_endpoint_returns_null_when_user_model_missing() -> None:
             vector_search_service=FakeVectorSearchService()
         ),
         session_ingest_service=session_ingest_service,
-        user_profile_renderer=UserProfileRenderer(),
         enabled_mcp_tools=frozenset(
             {
                 GET_USER_PROFILE_TOOL,

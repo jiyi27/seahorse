@@ -147,7 +147,7 @@ def test_user_profile_ingest_service_merges_and_persists_user_model() -> None:
         )
     )
     service = UserProfileIngestService(
-        user_model_repository=user_model_repo,
+        user_profile_repository=user_model_repo,
         extractor=extractor,
         merger=UserProfileMerger(),
     )
@@ -172,7 +172,7 @@ def test_user_profile_ingest_service_reports_no_update_for_empty_initial_patch()
     user_model_repo = FakeUserModelRepository()
     extractor = FakeExtractor(UserProfilePatch())
     service = UserProfileIngestService(
-        user_model_repository=user_model_repo,
+        user_profile_repository=user_model_repo,
         extractor=extractor,
         merger=UserProfileMerger(),
     )
@@ -194,7 +194,7 @@ def test_user_profile_ingest_service_ignores_non_user_messages() -> None:
         UserProfilePatch(preferences_to_add=["Concise answers"])
     )
     service = UserProfileIngestService(
-        user_model_repository=user_model_repo,
+        user_profile_repository=user_model_repo,
         extractor=extractor,
         merger=UserProfileMerger(),
     )
@@ -221,7 +221,7 @@ def test_user_profile_ingest_service_skips_extractor_without_user_messages() -> 
     user_model_repo = FakeUserModelRepository()
     extractor = FakeExtractor(UserProfilePatch(preferences_to_add=["Concise answers"]))
     service = UserProfileIngestService(
-        user_model_repository=user_model_repo,
+        user_profile_repository=user_model_repo,
         extractor=extractor,
         merger=UserProfileMerger(),
     )
