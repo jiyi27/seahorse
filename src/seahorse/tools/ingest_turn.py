@@ -30,8 +30,10 @@ def ingest_turn(
             Message(role=message["role"], text=message["text"])
         )
 
-    # Build the canonical conversation object once so downstream services receive
-    # validated, normalized input instead of separate raw parameters.
+    # Normalize the incoming `content`/`messages` arguments into
+    # ConversationInput so the ingest layer accepts a single input shape
+    # instead of separate raw parameters.
+    # ConversationInput also enforces that exactly one of `content` or `messages` is provided.
     conversation = ConversationInput(
         content=content,
         messages=normalized_messages,
