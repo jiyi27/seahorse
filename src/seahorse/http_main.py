@@ -7,16 +7,6 @@ import uvicorn
 
 from seahorse.api.http_server import build_default_http_app
 
-_UVICORN_LOG_CONFIG = {
-    "version": 1,
-    "disable_existing_loggers": False,
-    "loggers": {
-        "uvicorn": {"handlers": [], "level": "CRITICAL", "propagate": False},
-        "uvicorn.error": {"handlers": [], "level": "CRITICAL", "propagate": False},
-        "uvicorn.access": {"handlers": [], "level": "CRITICAL", "propagate": False},
-    },
-}
-
 
 def main() -> None:
     project_root = Path(__file__).resolve().parents[2]
@@ -28,7 +18,5 @@ def main() -> None:
     uvicorn.run(
         app,
         host="127.0.0.1",
-        port=8081,
-        access_log=False,
-        log_config=_UVICORN_LOG_CONFIG,
+        port=8081
     )
