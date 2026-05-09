@@ -3,7 +3,6 @@ from __future__ import annotations
 from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.domain.models import (
     ConversationInput,
-    ConversationSource,
     Message,
 )
 from seahorse.tools.contracts import (
@@ -20,7 +19,6 @@ def ingest_turn(
     *,
     content: str | None = None,
     messages: list[Message | ToolInputMessage] | None = None,
-    source: ConversationSource = "mcp",
     session_id: str | None = None,
 ) -> IngestTurnResult:
     normalized_messages = [
@@ -30,7 +28,6 @@ def ingest_turn(
         for message in (messages or [])
     ]
     conversation = ConversationInput(
-        source=source,
         content=content,
         messages=normalized_messages,
         session_id=session_id,

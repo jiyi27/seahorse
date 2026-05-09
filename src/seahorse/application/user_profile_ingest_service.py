@@ -53,7 +53,6 @@ class UserProfileIngestService:
             return None
 
         return ConversationInput(
-            source=conversation.source,
             session_id=conversation.session_id,
             messages=user_messages,
         )

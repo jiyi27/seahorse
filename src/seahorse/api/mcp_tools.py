@@ -78,6 +78,5 @@ def register_mcp_tools(server: FastMCP, runtime: SeahorseRuntime) -> None:
                 runtime.session_ingest_service,
                 content=content,
                 messages=messages,
-                source="mcp",
                 session_id=session_id,
             )

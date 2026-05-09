@@ -47,7 +47,6 @@ def register_http_routes(app: FastAPI, runtime: SeahorseRuntime) -> None:
                 runtime.session_ingest_service,
                 content=request.content,
                 messages=request.messages,
-                source="http",
                 session_id=request.session_id,
             )
         )
