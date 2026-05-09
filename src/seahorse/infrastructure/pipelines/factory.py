@@ -19,15 +19,15 @@ from seahorse.infrastructure.vectorstore.qdrant_store import (
 
 
 @dataclass(frozen=True)
-class VectorMemoryRuntime:
+class VectorComponents:
     embedding_model: Any
     vector_store: Any
 
 
-def build_vector_memory_runtime(
+def build_vector_components(
     app_config: AppConfig,
     secrets: SecretSettings,
-) -> VectorMemoryRuntime | None:
+) -> VectorComponents | None:
     if not app_config.vector_memory.enabled:
         return None
 
@@ -46,19 +46,19 @@ def build_vector_memory_runtime(
             collection_name=app_config.vector_memory.store.collection_name,
         )
     )
-    return VectorMemoryRuntime(
+    return VectorComponents(
         embedding_model=embedding_model,
         vector_store=vector_store,
     )
 
 
 def build_conversation_vector_pipeline(
-    vector_memory_runtime: VectorMemoryRuntime | None,
+    vector_components: VectorComponents | None,
 ):
-    if vector_memory_runtime is None:
+    if vector_components is None:
         return NoopConversationVectorPipeline()
 
     return QdrantConversationVectorPipeline(
-        embedding_model=vector_memory_runtime.embedding_model,
-        vector_store=vector_memory_runtime.vector_store,
+        embedding_model=vector_components.embedding_model,
+        vector_store=vector_components.vector_store,
     )

@@ -27,8 +27,8 @@ from seahorse.infrastructure.extractors.llm_user_profile_extractor import (
 )
 from seahorse.infrastructure.pipelines.factory import (
     build_conversation_vector_pipeline,
-    build_vector_memory_runtime,
-    VectorMemoryRuntime,
+    build_vector_components,
+    VectorComponents,
 )
 from seahorse.infrastructure.providers.config import build_provider_settings
 from seahorse.infrastructure.providers.factory import build_llm_provider
@@ -95,14 +95,14 @@ def _build_user_profile_ingest_service(
 
 
 def _build_health_service(
-    vector_memory_runtime: VectorMemoryRuntime | None,
+    vector_components: VectorComponents | None,
 ) -> HealthService:
     vector_health_service = (
         None
-        if vector_memory_runtime is None
+        if vector_components is None
         else VectorHealthService(
-            vector_memory_runtime.embedding_model,
-            vector_memory_runtime.vector_store,
+            vector_components.embedding_model,
+            vector_components.vector_store,
         )
     )
     return HealthService(vector_health_service=vector_health_service)
@@ -110,14 +110,14 @@ def _build_health_service(
 
 def _build_memory_search_service(
     app_config: AppConfig,
-    vector_memory_runtime: VectorMemoryRuntime | None,
+    vector_components: VectorComponents | None,
 ) -> MemorySearchService:
     vector_search_service = (
         None
-        if vector_memory_runtime is None
+        if vector_components is None
         else VectorSearchService(
-            vector_memory_runtime.embedding_model,
-            vector_memory_runtime.vector_store,
+            vector_components.embedding_model,
+            vector_components.vector_store,
             max_chunks=app_config.vector_memory.retrieval.max_chunks,
             max_blocks=app_config.vector_memory.retrieval.max_blocks,
         )
@@ -127,11 +127,11 @@ def _build_memory_search_service(
 
 def _build_session_ingest_service(
     user_profile_ingest_service: UserProfileIngestService,
-    vector_memory_runtime: VectorMemoryRuntime | None,
+    vector_components: VectorComponents | None,
 ) -> SessionIngestService:
     return SessionIngestService(
         user_profile_ingest_service=user_profile_ingest_service,
-        conversation_vector_pipeline=build_conversation_vector_pipeline(vector_memory_runtime),
+        conversation_vector_pipeline=build_conversation_vector_pipeline(vector_components),
     )
 
 
@@ -148,18 +148,18 @@ def _build_runtime(context: RuntimeBootstrapContext) -> SeahorseRuntime:
         provider_settings,
         user_profile_repository,
     )
-    vector_memory_runtime = build_vector_memory_runtime(
+    vector_components = build_vector_components(
         context.app_config,
         context.secrets,
     )
-    health_service = _build_health_service(vector_memory_runtime)
+    health_service = _build_health_service(vector_components)
     memory_search_service = _build_memory_search_service(
         context.app_config,
-        vector_memory_runtime,
+        vector_components,
     )
     session_ingest_service = _build_session_ingest_service(
         user_profile_ingest_service,
-        vector_memory_runtime,
+        vector_components,
     )
 
     return SeahorseRuntime(
