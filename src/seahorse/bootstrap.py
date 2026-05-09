@@ -148,6 +148,7 @@ def _build_runtime(context: RuntimeBootstrapContext) -> SeahorseRuntime:
         provider_settings,
         user_profile_repository,
     )
+    # Shared vector-layer dependencies: the embedding model and vector store.
     vector_components = build_vector_components(
         context.app_config,
         context.secrets,

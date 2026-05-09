@@ -28,6 +28,8 @@ def build_vector_components(
     app_config: AppConfig,
     secrets: SecretSettings,
 ) -> VectorComponents | None:
+    # Build the shared vector-layer dependencies for ingest and retrieval:
+    # the embedding model and vector store.
     if not app_config.vector_memory.enabled:
         return None
 
