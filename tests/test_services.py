@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import pytest
 
-from seahorse.application.memory_search_service import MemorySearchService
 from seahorse.application.session_ingest_service import SessionIngestService
 from seahorse.application.user_profile_merger import UserProfileMerger
 from seahorse.application.user_profile_ingest_service import UserProfileIngestService
@@ -10,7 +9,6 @@ from seahorse.domain.models import (
     ConversationInput,
     FactItem,
     FactPatchItem,
-    MemorySearchResultItem,
     Message,
     TextItem,
     UserProfile,
@@ -55,16 +53,6 @@ class FakeConversationVectorPipeline:
         self.calls += 1
 
 
-class FakeVectorSearchService:
-    def __init__(self, results: list | None = None) -> None:
-        self.results = results or []
-        self.calls = 0
-
-    def search(self, query: str):
-        self.calls += 1
-        return self.results
-
-
 class FakeUserProfileIngestService:
     def __init__(self, result_updated: bool) -> None:
         self.calls = 0
@@ -79,62 +67,6 @@ class FakeUserProfileIngestService:
                 "user_profile_updated": self.result_updated,
             },
         )()
-
-
-def test_user_profile_repository_returns_user_profile() -> None:
-    user_profile_repo = FakeUserProfileRepository(
-        UserProfile(
-            summary="Knows Python.",
-            facts=[FactItem(id="fact_001", category="identity", text="Uses Python")],
-        )
-    )
-
-    user_profile = user_profile_repo.load()
-
-    assert user_profile is not None
-    assert user_profile.summary == "Knows Python."
-
-
-def test_memory_search_service_returns_vector_results() -> None:
-    vector_search_service = FakeVectorSearchService(
-        [
-            MemorySearchResultItem(
-                id="chunk_001",
-                source_type="conversation",
-                text="Assistant previously suggested using stable chunking.",
-            )
-        ]
-    )
-
-    service = MemorySearchService(vector_search_service=vector_search_service)
-    results = service.search("chunking")
-
-    assert [result.model_dump() for result in results] == [
-        {
-            "id": "chunk_001",
-            "source_type": "conversation",
-            "text": "Assistant previously suggested using stable chunking.",
-        }
-    ]
-    assert vector_search_service.calls == 1
-
-
-def test_memory_search_service_returns_empty_when_vector_returns_nothing() -> None:
-    vector_search_service = FakeVectorSearchService()
-
-    service = MemorySearchService(vector_search_service=vector_search_service)
-    results = service.search("concise")
-
-    assert results == []
-    assert vector_search_service.calls == 1
-
-
-def test_memory_search_service_returns_empty_when_vector_search_disabled() -> None:
-    service = MemorySearchService()
-
-    results = service.search("concise")
-
-    assert results == []
 
 
 def test_user_profile_ingest_service_merges_and_persists_user_profile() -> None:

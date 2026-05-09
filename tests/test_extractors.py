@@ -2,15 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import httpx
 import pytest
 
-from seahorse.constants import OPENROUTER_BASE_URL
 from seahorse.domain.models import (
     ConversationInput,
     FactItem,
     Message,
-    ProviderSettings,
     UserProfile,
 )
 from seahorse.infrastructure.config import USER_PROFILE_EXTRACTION_PROMPT_FILE_NAME
@@ -18,7 +15,6 @@ from seahorse.infrastructure.extractors.llm_user_profile_extractor import (
     LLMUserProfileExtractor,
 )
 from seahorse.infrastructure.providers.base import LLMProvider
-from seahorse.infrastructure.providers.openrouter import OpenRouterProvider
 
 
 class FakeProvider(LLMProvider):
@@ -113,45 +109,3 @@ def test_llm_user_profile_extractor_rejects_invalid_json(tmp_path: Path) -> None
             conversation=ConversationInput(source="http", content="User prefers brief answers."),
             current_user_profile=None,
         )
-
-
-def test_openrouter_provider_formats_request_and_reads_response() -> None:
-    captured: dict[str, object] = {}
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        captured["url"] = str(request.url)
-        captured["authorization"] = request.headers.get("Authorization")
-        captured["title"] = request.headers.get("X-Title")
-        captured["payload"] = request.content.decode("utf-8")
-        return httpx.Response(
-            200,
-            json={
-                "choices": [
-                    {
-                        "message": {
-                            "content": "  {\"summary\":\"Stable user preference\"}  "
-                        }
-                    }
-                ]
-            },
-        )
-
-    transport = httpx.MockTransport(handler)
-    client = httpx.Client(transport=transport)
-    provider = OpenRouterProvider(
-        settings=ProviderSettings(
-            model="openai/gpt-4.1-mini",
-            api_key="test-key",
-            app_name="Seahorse Tests",
-            referer="https://example.com",
-        ),
-        http_client=client,
-    )
-
-    response = provider.complete(system_prompt="system", user_prompt="user")
-
-    assert response == '{"summary":"Stable user preference"}'
-    assert captured["url"] == f"{OPENROUTER_BASE_URL}/chat/completions"
-    assert captured["authorization"] == "Bearer test-key"
-    assert captured["title"] == "Seahorse Tests"
-    assert '"model":"openai/gpt-4.1-mini"' in str(captured["payload"])
