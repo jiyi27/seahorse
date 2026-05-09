@@ -136,6 +136,7 @@ def _build_session_ingest_service(
 
 
 def _build_runtime(context: RuntimeBootstrapContext) -> SeahorseRuntime:
+    # Step 1: Build provider settings and storage used by the user profile flow.
     provider_settings = build_provider_settings(
         context.app_config.provider,
         context.secrets,
@@ -143,16 +144,23 @@ def _build_runtime(context: RuntimeBootstrapContext) -> SeahorseRuntime:
     user_profile_repository = JSONUserProfileRepository(
         context.paths.storage.user_profile_path
     )
+
+    # Step 2: Build the ingest services.
+    # Step 2.1: Build the user profile ingest service.
     user_profile_ingest_service = _build_user_profile_ingest_service(
         context.paths,
         provider_settings,
         user_profile_repository,
     )
+
+    # Step 2.2: Build the shared vector-layer dependencies.
     # Shared vector-layer dependencies: the embedding model and vector store.
     vector_components = build_vector_components(
         context.app_config,
         context.secrets,
     )
+
+    # Step 2.3: Build the services that use the vector layer.
     health_service = _build_health_service(vector_components)
     memory_search_service = _build_memory_search_service(
         context.app_config,
@@ -163,6 +171,7 @@ def _build_runtime(context: RuntimeBootstrapContext) -> SeahorseRuntime:
         vector_components,
     )
 
+    # Step 3: Assemble the runtime exposed to transports and tools.
     return SeahorseRuntime(
         health_service=health_service,
         user_profile_repository=user_profile_repository,
