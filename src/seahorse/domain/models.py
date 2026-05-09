@@ -49,12 +49,8 @@ class Message(BaseModel):
 
 
 class ConversationInput(BaseModel):
-    # Raw text alternative to `messages`. When set, the text is forwarded to extraction as-is,
-    # bypassing the role-filtering applied to `messages` (which only passes user-role entries).
-    # Exactly one of `content` or `messages` must be provided.
     content: str | None = None
     messages: list[Message] = Field(default_factory=list)
-    session_id: str | None = None
 
     @model_validator(mode="after")
     def validate_payload(self) -> "ConversationInput":

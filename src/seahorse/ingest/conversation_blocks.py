@@ -19,7 +19,6 @@ def build_conversation_blocks(
         if message.role == "user" and current_messages:
             blocks.append(
                 ConversationBlock(
-                    session_id=conversation.session_id,
                     start_message_index=block_start_index,
                     end_message_index=index - 1,
                     messages=current_messages,
@@ -34,7 +33,6 @@ def build_conversation_blocks(
 
     blocks.append(
         ConversationBlock(
-            session_id=conversation.session_id,
             start_message_index=block_start_index,
             end_message_index=len(messages) - 1,
             messages=current_messages,

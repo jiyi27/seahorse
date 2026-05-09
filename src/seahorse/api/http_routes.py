@@ -18,7 +18,8 @@ from seahorse.tools.ingest_turn import ingest_turn
 
 
 class IngestRequest(BaseModel):
-    session_id: str | None = None
+    # 注入记忆时, 接口支持两种方式, 传递历史聊天记录或者传递一段文字描述 (不可同时传递)
+    # 文字描述在 ingest 阶段会被包装成单条信息的 list[Message], role 是 user
     content: str | None = None
     messages: list[Message] = Field(default_factory=list)
 
@@ -47,6 +48,5 @@ def register_http_routes(app: FastAPI, runtime: SeahorseRuntime) -> None:
                 runtime.session_ingest_service,
                 content=request.content,
                 messages=request.messages,
-                session_id=request.session_id,
             )
         )

@@ -181,7 +181,6 @@ def test_session_ingest_service_coordinates_user_profile_and_vector_pipeline() -
     result = service.ingest(
         ConversationInput(
             source="http",
-            session_id="session-1",
             messages=[Message(role="user", text="Keep it concise.")],
         )
     )

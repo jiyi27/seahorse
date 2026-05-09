@@ -19,18 +19,22 @@ def ingest_turn(
     *,
     content: str | None = None,
     messages: list[Message | ToolInputMessage] | None = None,
-    session_id: str | None = None,
 ) -> IngestTurnResult:
-    normalized_messages = [
-        message
-        if isinstance(message, Message)
-        else Message(role=message["role"], text=message["text"])
-        for message in (messages or [])
-    ]
+    # Normalize everything into Message so the rest of the ingest path sees one shape.
+    normalized_messages: list[Message] = []
+    for message in (messages or []):
+        if isinstance(message, Message):
+            normalized_messages.append(message)
+            continue
+        normalized_messages.append(
+            Message(role=message["role"], text=message["text"])
+        )
+
+    # Build the canonical conversation object once so downstream services receive
+    # validated, normalized input instead of separate raw parameters.
     conversation = ConversationInput(
         content=content,
         messages=normalized_messages,
-        session_id=session_id,
     )
     try:
         result = service.ingest(conversation)

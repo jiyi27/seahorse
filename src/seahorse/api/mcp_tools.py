@@ -72,11 +72,9 @@ def register_mcp_tools(server: FastMCP, runtime: SeahorseRuntime) -> None:
         def ingest_turn_tool(
             content: str | None = None,
             messages: list[ToolInputMessage] | None = None,
-            session_id: str | None = None,
         ) -> IngestTurnResult:
             return ingest_turn(
                 runtime.session_ingest_service,
                 content=content,
                 messages=messages,
-                session_id=session_id,
             )

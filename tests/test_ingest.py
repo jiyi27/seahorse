@@ -11,7 +11,6 @@ from seahorse.ingest.vector_fields import CONTENT, EMBEDDING_TEXT, PARENT_BLOCK_
 def test_build_conversation_blocks_groups_messages_by_user_turn() -> None:
     conversation = ConversationInput(
         source="http",
-        session_id="session-1",
         messages=[
             Message(role="system", text="You are helpful."),
             Message(role="user", text="Hello"),
@@ -36,7 +35,6 @@ def test_build_conversation_blocks_creates_single_block_for_content_only_input()
     conversation = ConversationInput(
         source="mcp",
         content="Remember this preference.",
-        session_id="session-1",
     )
 
     blocks = build_conversation_blocks(conversation)
@@ -48,7 +46,6 @@ def test_build_conversation_blocks_creates_single_block_for_content_only_input()
 def test_build_block_content_skips_system_and_preserves_roles() -> None:
     conversation = ConversationInput(
         source="http",
-        session_id="session-1",
         messages=[
             Message(role="system", text="System prompt"),
             Message(role="user", text="I went home today."),
@@ -85,7 +82,6 @@ def test_parent_and_child_ids_are_stable() -> None:
 def test_build_child_chunks_creates_one_child_per_user_and_assistant_message() -> None:
     conversation = ConversationInput(
         source="http",
-        session_id="session-1",
         messages=[
             Message(role="system", text="System prompt"),
             Message(role="user", text="I went home today."),

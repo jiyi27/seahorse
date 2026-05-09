@@ -6,7 +6,6 @@ from seahorse.domain.models import Message
 
 
 class ConversationBlock(BaseModel):
-    session_id: str | None = None
     start_message_index: int
     end_message_index: int
     messages: list[Message] = Field(default_factory=list)
