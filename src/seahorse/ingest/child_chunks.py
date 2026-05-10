@@ -1,12 +1,23 @@
 from __future__ import annotations
 
+from seahorse.domain.models import ConversationInput
 from seahorse.ingest.block_content import build_block_content
+from seahorse.ingest.conversation_blocks import build_conversation_blocks
 from seahorse.ingest.ids import build_child_chunk_id, build_parent_block_id
 from seahorse.ingest.models import ConversationBlock, PreparedVectorRecord
 from seahorse.ingest.vector_fields import CONTENT, EMBEDDING_TEXT, PARENT_BLOCK_ID
 
 
 EMBEDDING_ROLES = {"user", "assistant"}
+
+
+def build_conversation_chunks(
+    conversation: ConversationInput,
+) -> list[PreparedVectorRecord]:
+    chunks: list[PreparedVectorRecord] = []
+    for block in build_conversation_blocks(conversation):
+        chunks.extend(build_child_chunks(block))
+    return chunks
 
 
 def build_child_chunks(block: ConversationBlock) -> list[PreparedVectorRecord]:

@@ -10,7 +10,6 @@ from seahorse.ingest.vector_fields import CONTENT, EMBEDDING_TEXT, PARENT_BLOCK_
 
 def test_build_conversation_blocks_groups_messages_by_user_turn() -> None:
     conversation = ConversationInput(
-        source="http",
         messages=[
             Message(role="system", text="You are helpful."),
             Message(role="user", text="Hello"),
@@ -24,16 +23,12 @@ def test_build_conversation_blocks_groups_messages_by_user_turn() -> None:
 
     blocks = build_conversation_blocks(conversation)
 
-    assert [(block.start_message_index, block.end_message_index) for block in blocks] == [
-        (0, 0),
-        (1, 4),
-        (5, 6),
-    ]
+    assert len(blocks) == 2
+    assert [len(block.messages) for block in blocks] == [4, 2]
 
 
 def test_build_conversation_blocks_creates_single_block_for_content_only_input() -> None:
     conversation = ConversationInput(
-        source="mcp",
         content="Remember this preference.",
     )
 
@@ -43,9 +38,8 @@ def test_build_conversation_blocks_creates_single_block_for_content_only_input()
     assert blocks[0].messages == [Message(role="user", text="Remember this preference.")]
 
 
-def test_build_block_content_skips_system_and_preserves_roles() -> None:
+def test_build_block_content_preserves_user_assistant_and_tool_roles() -> None:
     conversation = ConversationInput(
-        source="http",
         messages=[
             Message(role="system", text="System prompt"),
             Message(role="user", text="I went home today."),
@@ -54,7 +48,7 @@ def test_build_block_content_skips_system_and_preserves_roles() -> None:
         ],
     )
 
-    block = build_conversation_blocks(conversation)[1]
+    block = build_conversation_blocks(conversation)[0]
 
     assert build_block_content(block) == (
         "[user]\nI went home today.\n\n"
@@ -81,7 +75,6 @@ def test_parent_and_child_ids_are_stable() -> None:
 
 def test_build_child_chunks_creates_one_child_per_user_and_assistant_message() -> None:
     conversation = ConversationInput(
-        source="http",
         messages=[
             Message(role="system", text="System prompt"),
             Message(role="user", text="I went home today."),
@@ -90,7 +83,7 @@ def test_build_child_chunks_creates_one_child_per_user_and_assistant_message() -
         ],
     )
 
-    block = build_conversation_blocks(conversation)[1]
+    block = build_conversation_blocks(conversation)[0]
     child_chunks = build_child_chunks(block)
 
     assert [child.text_for_embedding for child in child_chunks] == [

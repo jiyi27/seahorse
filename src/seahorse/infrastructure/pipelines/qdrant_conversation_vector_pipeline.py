@@ -1,9 +1,7 @@
 from __future__ import annotations
 
 from seahorse.domain.models import ConversationInput
-from seahorse.ingest.child_chunks import build_child_chunks
-from seahorse.ingest.conversation_blocks import build_conversation_blocks
-from seahorse.ingest.models import PreparedVectorRecord
+from seahorse.ingest.child_chunks import build_conversation_chunks
 
 
 class QdrantConversationVectorPipeline:
@@ -12,28 +10,17 @@ class QdrantConversationVectorPipeline:
         self._vector_store = vector_store
 
     def process(self, conversation: ConversationInput) -> None:
-        # Step 1: Split the conversation into blocks. Each block is a slice of messages
-        # anchored at a user message, e.g. [user, assistant] or [user, assistant, tool].
-        blocks = build_conversation_blocks(conversation)
-
-        # Step 2: Expand each block into child chunks — one per user/assistant message.
-        # Each chunk stores the full block content in its payload for retrieval later.
-        prepared_records = self._prepare_records(blocks)
-        if not prepared_records:
+        # Build vector chunks from user-anchored conversation blocks.
+        # Each chunk embeds one user/assistant message and stores the full block
+        # content in its payload for retrieval later.
+        chunks = build_conversation_chunks(conversation)
+        if not chunks:
             return
 
-        # Step 3: Embed all chunk texts in a single batch call.
+        # Embed all chunk texts in a single batch call.
         vectors = self._embedding_model.embed_documents(
-            [prepared.text_for_embedding for prepared in prepared_records]
+            [chunk.text_for_embedding for chunk in chunks]
         )
 
-        # Step 4: Upsert chunks and their vectors into Qdrant.
         # Upsert is idempotent — re-ingesting the same conversation is safe.
-        self._vector_store.upsert_chunks(prepared_records, vectors)
-
-    @staticmethod
-    def _prepare_records(blocks) -> list[PreparedVectorRecord]:
-        prepared_records: list[PreparedVectorRecord] = []
-        for block in blocks:
-            prepared_records.extend(build_child_chunks(block))
-        return prepared_records
+        self._vector_store.upsert_chunks(chunks, vectors)

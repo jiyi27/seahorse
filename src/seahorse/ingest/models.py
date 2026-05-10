@@ -6,8 +6,6 @@ from seahorse.domain.models import Message
 
 
 class ConversationBlock(BaseModel):
-    start_message_index: int
-    end_message_index: int
     messages: list[Message] = Field(default_factory=list)
 
 

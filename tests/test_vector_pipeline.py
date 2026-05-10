@@ -34,7 +34,6 @@ def test_qdrant_conversation_vector_pipeline_embeds_clean_text_and_stores_payloa
 
     pipeline.process(
         ConversationInput(
-            source="http",
             messages=[
                 Message(role="system", text="system prompt"),
                 Message(role="user", text="remember i prefer concise answers"),
@@ -69,7 +68,6 @@ def test_qdrant_conversation_vector_pipeline_skips_chunks_without_embedding_text
 
     pipeline.process(
         ConversationInput(
-            source="http",
             messages=[Message(role="system", text="system prompt only")],
         )
     )
