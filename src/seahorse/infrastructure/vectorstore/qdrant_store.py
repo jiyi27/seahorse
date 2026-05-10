@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from seahorse import logger
 from seahorse.ingest.vector_fields import CONTENT
 from seahorse.ingest.vector_fields import EMBEDDING_TEXT
-from seahorse.ingest.models import PreparedVectorRecord
+from seahorse.ingest.models import VectorChunk
 
 SEARCH_METHOD_NAME = "search"
 QUERY_POINTS_METHOD_NAME = "query_points"
@@ -25,13 +25,13 @@ class QdrantConversationVectorStore:
 
     def upsert_chunks(
         self,
-        chunks: list[PreparedVectorRecord],
+        chunks: list[VectorChunk],
         vectors: list[list[float]],
     ) -> None:
         if not chunks:
             return
         if len(chunks) != len(vectors):
-            raise RuntimeError("Vector count must match prepared chunk count")
+            raise RuntimeError("Vector count must match chunk count")
 
         client = self._get_client()
         self._ensure_collection(client, vector_size=len(vectors[0]))
@@ -45,21 +45,21 @@ class QdrantConversationVectorStore:
 
         points = [
             PointStruct(
-                id=prepared.record_id,
+                id=chunk.record_id,
                 vector=vector,
-                payload=prepared.payload,
+                payload=chunk.payload,
             )
-            for prepared, vector in zip(chunks, vectors, strict=True)
+            for chunk, vector in zip(chunks, vectors, strict=True)
         ]
-        for prepared, vector in zip(chunks, vectors, strict=True):
+        for chunk, vector in zip(chunks, vectors, strict=True):
             logger.debug(
                 "rag.chunk.upsert",
                 {
-                    "record_id": prepared.record_id,
+                    "record_id": chunk.record_id,
                     "embedding": vector,
-                    "text_for_embedding": prepared.text_for_embedding,
-                    "embedding_text": prepared.payload.get(EMBEDDING_TEXT),
-                    "content": prepared.payload.get(CONTENT),
+                    "text_for_embedding": chunk.text_for_embedding,
+                    "embedding_text": chunk.payload.get(EMBEDDING_TEXT),
+                    "content": chunk.payload.get(CONTENT),
                 },
             )
         client.upsert(

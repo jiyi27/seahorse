@@ -4,7 +4,7 @@ from seahorse.domain.models import ConversationInput
 from seahorse.ingest.block_content import build_block_content
 from seahorse.ingest.conversation_blocks import build_conversation_blocks
 from seahorse.ingest.ids import build_child_chunk_id, build_parent_block_id
-from seahorse.ingest.models import ConversationBlock, PreparedVectorRecord
+from seahorse.ingest.models import ConversationBlock, VectorChunk
 from seahorse.ingest.vector_fields import CONTENT, EMBEDDING_TEXT, PARENT_BLOCK_ID
 
 
@@ -13,20 +13,22 @@ EMBEDDING_ROLES = {"user", "assistant"}
 
 def build_conversation_chunks(
     conversation: ConversationInput,
-) -> list[PreparedVectorRecord]:
-    chunks: list[PreparedVectorRecord] = []
+) -> list[VectorChunk]:
+    chunks: list[VectorChunk] = []
     for block in build_conversation_blocks(conversation):
         chunks.extend(build_child_chunks(block))
     return chunks
 
 
-def build_child_chunks(block: ConversationBlock) -> list[PreparedVectorRecord]:
+def build_child_chunks(block: ConversationBlock) -> list[VectorChunk]:
     content = build_block_content(block)
     if not content:
         return []
 
+    # The parent_block_id is a content hash of the full rendered block,
+    # used to link all child chunks split from the same block together
     parent_block_id = build_parent_block_id(content)
-    records: list[PreparedVectorRecord] = []
+    chunks: list[VectorChunk] = []
     child_index = 0
     for message in block.messages:
         if message.role not in EMBEDDING_ROLES:
@@ -34,8 +36,8 @@ def build_child_chunks(block: ConversationBlock) -> list[PreparedVectorRecord]:
         embedding_text = message.text.strip()
         if not embedding_text:
             continue
-        records.append(
-            PreparedVectorRecord(
+        chunks.append(
+            VectorChunk(
                 record_id=build_child_chunk_id(
                     parent_block_id=parent_block_id,
                     child_index=child_index,
@@ -50,4 +52,4 @@ def build_child_chunks(block: ConversationBlock) -> list[PreparedVectorRecord]:
             )
         )
         child_index += 1
-    return records
+    return chunks

@@ -9,7 +9,7 @@ class ConversationBlock(BaseModel):
     messages: list[Message] = Field(default_factory=list)
 
 
-class PreparedVectorRecord(BaseModel):
+class VectorChunk(BaseModel):
     record_id: str
     text_for_embedding: str
     payload: dict[str, object]

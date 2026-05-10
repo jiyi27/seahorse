@@ -6,12 +6,12 @@ from seahorse.ingest.conversation_blocks import build_conversation_blocks
 from seahorse.ingest.ids import build_child_chunk_id, build_parent_block_id
 from seahorse.ingest.models import (
     ConversationBlock,
-    PreparedVectorRecord,
+    VectorChunk,
 )
 
 __all__ = [
     "ConversationBlock",
-    "PreparedVectorRecord",
+    "VectorChunk",
     "build_block_content",
     "build_child_chunk_id",
     "build_child_chunks",
